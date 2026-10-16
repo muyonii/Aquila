@@ -1,0 +1,50 @@
+{
+  "profile_info": {
+    "system_name": "AQUILA Hydraulic Diurnal Profiles",
+    "version": "2.2.0",
+    "timezone": "Asia/Manila"
+  },
+  "diurnal_multipliers": {
+    "0": 0.05,
+    "1": 0.03,
+    "2": 0.02,
+    "3": 0.02,
+    "4": 0.08,
+    "5": 0.85,
+    "6": 1.45,
+    "7": 1.50,
+    "8": 1.20,
+    "9": 0.70,
+    "10": 0.65,
+    "11": 0.80,
+    "12": 0.85,
+    "13": 0.60,
+    "14": 0.55,
+    "15": 0.60,
+    "16": 0.75,
+    "17": 1.10,
+    "18": 1.40,
+    "19": 1.35,
+    "20": 1.10,
+    "21": 0.75,
+    "22": 0.35,
+    "23": 0.15
+  },
+  "household_archetypes": {
+    "standard_family": {
+      "base_draw_lpm": 3.50,
+      "turbulence_std": 0.45,
+      "active_probability": 0.40
+    },
+    "high_demand_family": {
+      "base_draw_lpm": 5.20,
+      "turbulence_std": 0.60,
+      "active_probability": 0.55
+    },
+    "terminal_ridge": {
+      "base_draw_lpm": 2.20,
+      "turbulence_std": 0.30,
+      "active_probability": 0.30
+    }
+  }
+}

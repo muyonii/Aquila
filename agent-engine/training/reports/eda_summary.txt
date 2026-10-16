@@ -1,0 +1,27 @@
+======================================================================
+AQUILA ML RESEARCH — EXPLORATORY DATA ANALYSIS (EDA) REPORT
+======================================================================
+Total Telemetry Samples : 10000
+Normal Samples (0)      : 7500 (75.0%)
+Leak Samples (1)        : 2500 (25.0%)
+
+FEATURE CORRELATION WITH TARGET (is_leak):
+is_leak             1.000000
+duration_minutes    0.817429
+rolling_mean_5m     0.426772
+flow_rate_lpm       0.421921
+hour_of_day        -0.009523
+effective_std      -0.304261
+
+FEATURE MEANS BY CLASS:
+         flow_rate_lpm  rolling_mean_5m  effective_std  duration_minutes  hour_of_day
+is_leak                                                                              
+0             1.660300         1.653840       0.200905           3.06360    11.531067
+1             4.036556         4.037448       0.046571         138.74728    11.379200
+
+FEATURE STANDARD DEVIATIONS BY CLASS:
+         flow_rate_lpm  rolling_mean_5m  effective_std  duration_minutes  hour_of_day
+is_leak                                                                              
+0             2.222663         2.190760       0.241477          5.023857     6.914483
+1             2.176644         2.177209       0.014040         82.362440     6.879472
+======================================================================

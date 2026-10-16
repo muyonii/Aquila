@@ -1,0 +1,21 @@
+======================================================================
+AQUILA ML RESEARCH — 5-FOLD STRATIFIED CROSS-VALIDATION REPORT
+======================================================================
+Total Samples     : 10000
+Folds Evaluated   : 5
+Decision Threshold: 0.4
+
+AGGREGATE PERFORMANCE (Mean +/- Std Dev):
+  Accuracy  : 100.00% +/- 0.00%
+  Precision : 100.00% +/- 0.00%
+  Recall    : 100.00% +/- 0.00%
+  F1-Score  : 100.00% +/- 0.00%
+  ROC-AUC   : 1.0000 +/- 0.0000
+
+PER-FOLD BREAKDOWN:
+  Fold 1: Acc=1.0000, Prec=1.0000, Rec=1.0000, F1=1.0000, AUC=1.0000
+  Fold 2: Acc=1.0000, Prec=1.0000, Rec=1.0000, F1=1.0000, AUC=1.0000
+  Fold 3: Acc=1.0000, Prec=1.0000, Rec=1.0000, F1=1.0000, AUC=1.0000
+  Fold 4: Acc=1.0000, Prec=1.0000, Rec=1.0000, F1=1.0000, AUC=1.0000
+  Fold 5: Acc=1.0000, Prec=1.0000, Rec=1.0000, F1=1.0000, AUC=1.0000
+======================================================================
