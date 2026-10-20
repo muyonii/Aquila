@@ -7,7 +7,7 @@ export default function PurokNodeOverview({ nodes = [] }) {
   const rtdbNodes = useTelemetryStore((state) => state.nodes);
   const leakHypotheses = useTelemetryStore((state) => state.leakHypotheses);
 
-  const getBadgeForNode = (n) => {
+  const getNodeStatus = (n) => {
     const nodeId = n.node_id;
     const leak = leakHypotheses?.[nodeId];
     const rtdbStatus = rtdbNodes?.[nodeId]?.status || n.status;
@@ -15,74 +15,66 @@ export default function PurokNodeOverview({ nodes = [] }) {
 
     if (leak?.classification === 'LEAK') {
       return {
-        label: `Leak (${flow.toFixed(1)} LPM)`,
-        dot: 'bg-rose-500 animate-ping',
-        cls: 'bg-rose-50 text-rose-700 border-rose-200'
+        label: `Leak (${flow.toFixed(1)} L/min)`,
+        dotColor: 'text-rose-600'
       };
     }
     if (rtdbStatus === 'MAINTENANCE') {
       return {
         label: 'Maintenance',
-        dot: 'bg-amber-500',
-        cls: 'bg-amber-50 text-amber-800 border-amber-200'
+        dotColor: 'text-amber-600'
       };
     }
     if (leak?.classification === 'SUSPICIOUS') {
       return {
-        label: 'Suspicious',
-        dot: 'bg-amber-500',
-        cls: 'bg-amber-50 text-amber-700 border-amber-200'
+        label: 'Suspicious flow',
+        dotColor: 'text-amber-600'
       };
     }
     return {
-      label: flow > 0 ? `${flow.toFixed(2)} LPM` : 'Normal',
-      dot: 'bg-emerald-500',
-      cls: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      label: flow > 0 ? `${flow.toFixed(2)} L/min` : 'Normal',
+      dotColor: 'text-emerald-600'
     };
   };
 
   return (
-    <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] p-6 space-y-4">
-      <div className="flex items-center justify-between border-b border-black/[0.05] pb-3">
+    <div className="border border-slate-200 rounded-md bg-white p-5 space-y-4">
+      <div className="flex items-baseline justify-between border-b border-slate-200 pb-3">
         <div>
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Network className="h-4 w-4 text-slate-700" />
-            <span>Purok 2 Sector Status Overview</span>
-          </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Monitored neighborhood tap nodes and physical sensor health.
+          <h2 className="text-base font-semibold text-slate-900">
+            Purok 2 node overview
+          </h2>
+          <p className="text-sm text-slate-600 mt-0.5">
+            Monitored neighborhood tap nodes and sensor health.
           </p>
         </div>
 
         <Link
           to="/network-map"
-          className="inline-flex items-center gap-1 text-xs text-[#007aff] hover:underline font-semibold"
+          className="text-sm font-semibold text-[#0c4a6e] hover:underline"
         >
-          <span>Open Map</span>
-          <ChevronRight className="h-3 w-3" />
+          Open map
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      <div className="divide-y divide-slate-200">
         {nodes.slice(0, 6).map((n) => {
-          const badge = getBadgeForNode(n);
+          const status = getNodeStatus(n);
           return (
             <Link
               to="/network-map"
               key={n.node_id}
-              className="p-3 bg-slate-50 hover:bg-slate-100/80 transition-colors rounded-xl border border-slate-200/60 flex items-center justify-between"
+              className="py-2.5 flex items-center justify-between text-left hover:bg-slate-50 transition-colors px-1"
             >
-              <div className="overflow-hidden pr-2">
-                <span className="font-semibold text-xs text-slate-900 block truncate">
-                  {n.household_label}
+              <div className="min-w-0 pr-3">
+                <span className="font-semibold text-sm text-slate-900 block truncate">
+                  {n.household_label || n.node_id}
                 </span>
-                <span className="text-[10.5px] font-mono text-slate-400">{n.node_id}</span>
+                <span className="text-xs font-mono text-slate-600">{n.node_id}</span>
               </div>
-              <span
-                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-semibold border shrink-0 ${badge.cls}`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} />
-                <span>{badge.label}</span>
+              <span className="text-sm text-slate-700 flex items-center gap-1.5 shrink-0">
+                <span className={status.dotColor} aria-hidden="true">●</span>
+                <span>{status.label}</span>
               </span>
             </Link>
           );

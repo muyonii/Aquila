@@ -19,13 +19,13 @@ export default function AdminActionHub() {
   ];
 
   return (
-    <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] p-6 space-y-4">
-      <div className="border-b border-black/[0.05] pb-3">
-        <h3 className="text-sm font-bold text-slate-900">Quick Administrative Actions</h3>
-        <p className="text-xs text-slate-500 mt-0.5">Common municipal utility shortcuts.</p>
+    <div className="border border-slate-200 rounded-md bg-white p-5 space-y-4">
+      <div className="border-b border-slate-200 pb-3">
+        <h2 className="text-base font-semibold text-slate-900">Administrative actions</h2>
+        <p className="text-sm text-slate-600 mt-0.5">Municipal utility shortcuts and records export.</p>
       </div>
 
-      <div className="space-y-2">
+      <div className="divide-y divide-slate-200">
         {actions.map((act) => {
           const Icon = act.icon;
           return (
@@ -33,13 +33,13 @@ export default function AdminActionHub() {
               key={act.label}
               type="button"
               onClick={act.onClick}
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 text-xs font-semibold text-slate-800 transition-colors cursor-pointer text-left"
+              className="w-full py-3 flex items-center justify-between text-left text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
             >
               <div className="flex items-center gap-2.5">
-                <Icon className="h-4 w-4 text-slate-500" />
-                <span>{act.label}</span>
+                <Icon className="h-4 w-4 text-slate-500 stroke-[1.75]" />
+                <span className="font-medium">{act.label}</span>
               </div>
-              <span className="text-slate-400">→</span>
+              <span className="text-slate-400 text-sm">→</span>
             </button>
           );
         })}

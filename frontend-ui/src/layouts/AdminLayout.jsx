@@ -109,7 +109,7 @@ export default function AdminLayout() {
             </div>
 
             {/* Navigation Links */}
-            <nav className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-220px)] [scrollbar-width:none]">
+            <nav className="py-2 space-y-0.5 overflow-y-auto max-h-[calc(100vh-200px)] [scrollbar-width:none]">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -118,20 +118,20 @@ export default function AdminLayout() {
                     to={item.to}
                     title={!isExpanded ? item.label : undefined}
                     className={({ isActive }) =>
-                      `group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] focus-visible:outline-none ${
+                      `group flex items-center gap-3 px-3.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] focus-visible:outline-none ${
                         isActive
-                          ? 'bg-[#0c4a6e] text-white shadow-sm'
-                          : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                          ? 'border-l-2 border-[#0c4a6e] bg-slate-100 text-slate-900 font-semibold'
+                          : 'border-l-2 border-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-normal'
                       } ${!isExpanded ? 'justify-center px-0' : ''}`
                     }
                   >
-                    <Icon className="h-4 w-4 shrink-0 transition-none stroke-[2]" />
+                    <Icon className="h-4 w-4 text-slate-500 shrink-0 stroke-[1.75]" />
                     
                     {isExpanded && (
                       <div className="flex items-center justify-between flex-1 truncate">
                         <span className="truncate">{item.label}</span>
                         {item.hasBadge && (
-                          <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-600 shrink-0" />
                         )}
                       </div>
                     )}
@@ -141,14 +141,14 @@ export default function AdminLayout() {
             </nav>
           </div>
 
-          {/* Bottom: User Profile & View Control */}
-          <div className="p-3 relative z-10 shrink-0" ref={popoverRef}>
+          {/* Bottom: User Profile & View Control (plain row separated by rule) */}
+          <div className="p-3 border-t border-slate-200 relative z-10 shrink-0" ref={popoverRef}>
             
-            {/* Supabase Popover Menu */}
+            {/* Popover Menu */}
             {popoverOpen && (
-              <div className="absolute bottom-16 left-3 w-48 bg-white border border-slate-200 rounded-xl p-1.5 shadow-lg text-sm space-y-0.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-2.5 py-1 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Sidebar View
+              <div className="absolute bottom-16 left-3 w-48 bg-white border border-slate-200 rounded-md p-1.5 text-sm space-y-0.5 z-50">
+                <div className="px-2.5 py-1 text-xs text-slate-600">
+                  Sidebar view
                 </div>
 
                 {[
@@ -160,89 +160,82 @@ export default function AdminLayout() {
                     key={opt.id}
                     type="button"
                     onClick={() => selectMode(opt.id)}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
-                    <span className="text-sm font-medium">{opt.label}</span>
+                    <span className="text-sm">{opt.label}</span>
                     {sidebarMode === opt.id && (
-                      <span className="w-2 h-2 rounded-full bg-[#0c4a6e]" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#0c4a6e]" />
                     )}
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Elevated Solid User Card */}
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 shadow-sm">
-              {isExpanded ? (
-                /* Expanded: Avatar + Stacked Name/Email + Extend + Logout */
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 overflow-hidden">
-                    <div className="w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-bold text-xs flex items-center justify-center shrink-0">
-                      {userInitials}
-                    </div>
-                    <div className="overflow-hidden">
-                      <div className="text-sm font-semibold text-slate-900 truncate leading-tight">
-                        {user?.full_name || 'System Admin'}
-                      </div>
-                      <div className="text-xs text-slate-600 font-mono truncate mt-0.5">
-                        {user?.email || 'admin@bawasa.gov.ph'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    {/* Supabase Extend / Collapse Button */}
-                    <button
-                      type="button"
-                      onClick={() => setPopoverOpen(!popoverOpen)}
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
-                      title="Sidebar control"
-                    >
-                      <PanelLeft className="h-4 w-4" />
-                    </button>
-
-                    {/* Logout Button */}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      title="Sign Out"
-                      className="p-1.5 rounded-lg text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
-                    >
-                      <LogOut className="h-4 w-4 stroke-[2]" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                /* Collapsed: Centered Avatar + Extend + Logout */
-                <div className="flex flex-col items-center gap-2 py-1">
-                  <div
-                    className="w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-bold text-xs flex items-center justify-center shrink-0"
-                    title={user?.full_name || 'System Admin'}
-                  >
+            {/* Plain User Row (no card inside a card) */}
+            {isExpanded ? (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 overflow-hidden">
+                  <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center shrink-0">
                     {userInitials}
                   </div>
+                  <div className="overflow-hidden">
+                    <div className="text-sm font-semibold text-slate-900 truncate leading-tight">
+                      {user?.full_name || 'System Admin'}
+                    </div>
+                    <div className="text-xs text-slate-600 truncate mt-0.5">
+                      {user?.email || 'admin@bawasa.gov.ph'}
+                    </div>
+                  </div>
+                </div>
 
+                <div className="flex items-center gap-0.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => setPopoverOpen(!popoverOpen)}
-                    className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-200 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+                    className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
                     title="Sidebar control"
                   >
-                    <PanelLeft className="h-4 w-4" />
+                    <PanelLeft className="h-4 w-4 stroke-[1.75]" />
                   </button>
 
                   <button
                     type="button"
                     onClick={handleLogout}
                     title="Sign Out"
-                    className="p-1.5 rounded-lg text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+                    className="p-1.5 rounded-md text-slate-500 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
                   >
-                    <LogOut className="h-4 w-4 stroke-[2]" />
+                    <LogOut className="h-4 w-4 stroke-[1.75]" />
                   </button>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-1">
+                <div
+                  className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center shrink-0"
+                  title={user?.full_name || 'System Admin'}
+                >
+                  {userInitials}
+                </div>
 
+                <button
+                  type="button"
+                  onClick={() => setPopoverOpen(!popoverOpen)}
+                  className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+                  title="Sidebar control"
+                >
+                  <PanelLeft className="h-4 w-4 stroke-[1.75]" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="Sign Out"
+                  className="p-1.5 rounded-md text-slate-500 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+                >
+                  <LogOut className="h-4 w-4 stroke-[1.75]" />
+                </button>
+              </div>
+            )}
           </div>
         </aside>
       </div>
