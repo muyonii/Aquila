@@ -69,43 +69,43 @@ export default function AgentHeartbeatBar() {
   };
 
   return (
-    <div className="bg-white/90 backdrop-blur-xl border border-white/90 rounded-2xl p-3.5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] flex flex-wrap items-center justify-between gap-4">
+    <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-4">
       
       {/* Left: Overall Engine Liveness State */}
       <div className="flex items-center gap-3">
         <div
           className={`p-2 rounded-xl border ${
             systemHealth.overallStatus === 'HEALTHY'
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
               : systemHealth.overallStatus === 'DEGRADED'
-              ? 'bg-amber-50 text-amber-700 border-amber-200'
-              : 'bg-rose-50 text-rose-700 border-rose-200'
+              ? 'bg-amber-50 text-amber-900 border-amber-300'
+              : 'bg-rose-50 text-rose-800 border-rose-300'
           }`}
         >
-          <Cpu className="w-4 h-4" />
+          <Cpu className="w-4 h-4 stroke-[2]" />
         </div>
 
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold text-slate-900">
+            <span className="text-sm font-bold text-slate-900">
               MAS Multi-Agent Watchdog
             </span>
 
             {systemHealth.overallStatus === 'HEALTHY' ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                <CheckCircle2 className="w-3 h-3" /> All Agents Active ({systemHealth.healthyCount}/{systemHealth.totalCount})
+              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-300">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" /> All Agents Active ({systemHealth.healthyCount}/{systemHealth.totalCount})
               </span>
             ) : systemHealth.overallStatus === 'DEGRADED' ? (
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 animate-pulse">
-                <AlertTriangle className="w-3 h-3" /> Degraded ({systemHealth.healthyCount}/{systemHealth.totalCount} Active)
+              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-lg border border-amber-300">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-700" /> Degraded ({systemHealth.healthyCount}/{systemHealth.totalCount} Active)
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
-                <AlertTriangle className="w-3 h-3" /> Agents Offline (0/{systemHealth.totalCount} — &gt;30s Timeout)
+              <span className="inline-flex items-center gap-1 text-xs font-mono font-semibold text-rose-800 bg-rose-50 px-2.5 py-0.5 rounded-lg border border-rose-300">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-700" /> Agents Offline (0/{systemHealth.totalCount} — &gt;30s Timeout)
               </span>
             )}
           </div>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-slate-600 mt-0.5">
             30.0s circuit breaker cutoff (FR-DSS-03) • 15.0s deliberation cycle
           </p>
         </div>
@@ -119,20 +119,20 @@ export default function AgentHeartbeatBar() {
           return (
             <div
               key={agent.id}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs transition ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition ${
                 agent.isAlive
-                  ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
-                  : 'bg-rose-50/70 border-rose-200 text-rose-800'
+                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                  : 'bg-rose-50 border-rose-300 text-rose-900'
               }`}
               title={`${agent.name} (${agent.id}) — Status: ${agent.status}`}
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  agent.isAlive ? 'bg-emerald-500 animate-ping' : 'bg-rose-500'
+                  agent.isAlive ? 'bg-emerald-600' : 'bg-rose-600'
                 }`}
               />
               <span className="font-bold font-mono">{agent.short}</span>
-              <span className="text-[10px] font-mono opacity-75">
+              <span className="font-mono text-slate-700">
                 {ageText}
               </span>
             </div>
@@ -145,20 +145,20 @@ export default function AgentHeartbeatBar() {
             type="button"
             onClick={handleSendHeartbeatPulse}
             disabled={pulsing}
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-semibold transition cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0c4a6e] hover:bg-[#075985] text-white text-xs font-semibold transition cursor-pointer shadow-sm focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
             title="Broadcast a 30-second heartbeat pulse to Firebase for all 3 agents"
           >
-            <Activity className="w-3 h-3 text-sky-400" />
+            <Activity className="w-3.5 h-3.5 stroke-[2]" />
             <span>{pulsing ? 'Pulsing...' : 'Pulse Agents'}</span>
           </button>
         )}
 
         {/* Firebase RTDB WebSocket Connection Status */}
         <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-medium ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold ${
             isConnected
-              ? 'text-sky-700 bg-sky-50 border-sky-200'
-              : 'text-slate-400 bg-slate-50 border-slate-200'
+              ? 'text-[#0c4a6e] bg-sky-50 border-sky-300'
+              : 'text-slate-700 bg-slate-100 border-slate-300'
           }`}
           title={
             isConnected
@@ -167,11 +167,11 @@ export default function AgentHeartbeatBar() {
           }
         >
           {isConnected ? (
-            <Wifi className="w-3.5 h-3.5 text-sky-600" />
+            <Wifi className="w-3.5 h-3.5 text-[#0c4a6e] stroke-[2]" />
           ) : (
-            <WifiOff className="w-3.5 h-3.5 text-slate-400" />
+            <WifiOff className="w-3.5 h-3.5 text-slate-600 stroke-[2]" />
           )}
-          <span className="text-[11px] font-mono">
+          <span className="font-mono">
             {isConnected ? 'RTDB Live' : 'RTDB Offline'}
           </span>
         </div>

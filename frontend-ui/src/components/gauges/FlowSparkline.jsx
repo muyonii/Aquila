@@ -8,7 +8,7 @@ export default function FlowSparkline({
   if (!data || data.length < 2) {
     return (
       <div 
-        className="flex items-center justify-center bg-slate-50 border border-slate-100 rounded text-[10px] text-slate-400"
+        className="flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 px-2"
         style={{ height }}
       >
         Awaiting telemetry...
@@ -32,8 +32,8 @@ export default function FlowSparkline({
   });
 
   const pathD = `M ${points.join(' L ')}`;
-  const strokeColor = isLeak ? '#ef4444' : '#0284c7';
-  const fillColor = isLeak ? '#fecaca' : '#bae6fd';
+  const strokeColor = isLeak ? '#b91c1c' : '#0c4a6e';
+  const fillColor = isLeak ? '#fee2e2' : '#e0f2fe';
 
   return (
     <div className="inline-block relative">

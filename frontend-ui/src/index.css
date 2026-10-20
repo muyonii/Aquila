@@ -7,17 +7,26 @@
 ======================================== */
 
 :root {
-  --aquila-blue: #488DB4;
-  --aquila-blue-dark: #022F56;
-  --aquila-blue-light: #CCDEE4;
-  --aquila-blue-medium: #85C4E4;
+  --bg-canvas: #f4f5f8;
+  --bg-surface: #ffffff;
+  --border-default: #cbd5e1;
+  --border-subtle: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --brand-primary: #0c4a6e;
+  --brand-hover: #075985;
 
-  --aquila-indigo: #183c5b;
-  --aquila-indigo-light: #eef2ff;
+  --aquila-blue: #0c4a6e;
+  --aquila-blue-dark: #075985;
+  --aquila-blue-light: #e0f2fe;
+  --aquila-blue-medium: #38bdf8;
 
-  --aquila-emerald: #10b981;
+  --aquila-indigo: #1e293b;
+  --aquila-indigo-light: #f1f5f9;
+
+  --aquila-emerald: #059669;
   --aquila-emerald-dark: #047857;
-  --aquila-emerald-light: #d1fae5;
+  --aquila-emerald-light: #ecfdf5;
 }
 
 /* ========================================

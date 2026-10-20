@@ -13,15 +13,17 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className={`bg-white w-full ${maxWidth} rounded-2xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h3 className="font-black text-slate-900 text-sm">{title}</h3>
+    <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4">
+      <div className={`bg-white w-full ${maxWidth} rounded-2xl border border-slate-200 p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto`}>
+        <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+          <h3 className="font-bold text-slate-900 text-lg">{title}</h3>
           <button 
+            type="button"
             onClick={onClose} 
-            className="p-1 text-slate-400 hover:text-slate-600 rounded-lg transition cursor-pointer"
+            className="p-1.5 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+            aria-label="Close modal"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5 stroke-[2]" />
           </button>
         </div>
 

@@ -57,10 +57,10 @@ export default function ResidentLayout() {
       <AmbientWash />
 
       {/* Top bar */}
-      <header className="h-14 bg-white/80 backdrop-blur-2xl border-b border-black/[0.05] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+      <header className="h-14 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
         <Brand
           suffix={
-            <span className="hidden sm:inline text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase border border-slate-200 rounded-md px-1.5 py-0.5">
+            <span className="hidden sm:inline text-xs font-mono font-bold tracking-wider text-slate-700 uppercase border border-slate-300 rounded-lg px-2 py-0.5">
               Resident
             </span>
           }
@@ -73,14 +73,14 @@ export default function ResidentLayout() {
               key={path}
               to={path}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                `flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
                   isActive
-                    ? 'bg-slate-900/95 text-white font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+                    ? 'bg-[#0c4a6e] text-white shadow-sm'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
                 }`
               }
             >
-              <Icon className="w-4 h-4 stroke-[1.8]" />
+              <Icon className="w-4 h-4 stroke-[2]" />
               <span>{name}</span>
             </NavLink>
           ))}
@@ -89,12 +89,12 @@ export default function ResidentLayout() {
         <div className="flex items-center gap-2.5">
           {/* Accurate Meter Stream Status Pill */}
           <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-mono font-semibold ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-semibold ${
               isMeterStreaming
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                 : isConnected
-                ? 'bg-slate-100 text-slate-600 border-slate-200'
-                : 'bg-rose-50 text-rose-700 border-rose-200'
+                ? 'bg-slate-100 text-slate-700 border-slate-300'
+                : 'bg-rose-50 text-rose-800 border-rose-300'
             }`}
             title={
               isMeterStreaming
@@ -109,10 +109,10 @@ export default function ResidentLayout() {
               <span
                 className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
                   isMeterStreaming
-                    ? 'bg-emerald-500'
+                    ? 'bg-emerald-600'
                     : isConnected
-                    ? 'bg-slate-400'
-                    : 'bg-rose-500'
+                    ? 'bg-slate-500'
+                    : 'bg-rose-600'
                 }`}
               />
             </span>
@@ -124,7 +124,7 @@ export default function ResidentLayout() {
           </span>
 
           <div
-            className="hidden sm:flex w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs items-center justify-center ring-2 ring-white/90"
+            className="hidden sm:flex w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-bold text-xs items-center justify-center"
             title={user?.full_name}
           >
             {initials(user?.full_name)}
@@ -133,9 +133,9 @@ export default function ResidentLayout() {
             onClick={handleLogout}
             title="Sign out"
             aria-label="Sign out"
-            className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50/70 transition-colors cursor-pointer"
+            className="p-2 rounded-lg text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
           >
-            <LogOut className="w-4 h-4 stroke-[1.8]" />
+            <LogOut className="w-4 h-4 stroke-[2]" />
           </button>
         </div>
       </header>
@@ -148,29 +148,29 @@ export default function ResidentLayout() {
       {/* Mobile bottom navigation */}
       <nav
         aria-label="Primary"
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-black/[0.05] pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]"
       >
         <div className="h-16 grid grid-cols-4">
           {NAV_ITEMS.map(({ short, path, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}
-              className="flex flex-col items-center justify-center gap-1"
+              className="flex flex-col items-center justify-center gap-1 focus-visible:outline-none"
             >
               {({ isActive }) => (
                 <>
                   <span
-                    className={`w-12 h-7 rounded-full flex items-center justify-center transition-all ${
-                      isActive ? 'bg-slate-900 text-white' : 'text-slate-400'
+                    className={`w-12 h-7 rounded-full flex items-center justify-center transition-colors ${
+                      isActive ? 'bg-[#0c4a6e] text-white' : 'text-slate-600'
                     }`}
                   >
-                    <Icon className="w-[18px] h-[18px] stroke-[1.8]" />
+                    <Icon className="w-4 h-4 stroke-[2]" />
                   </span>
                   <span
-                    className={`text-[11px] ${
+                    className={`text-xs ${
                       isActive
-                        ? 'font-bold text-slate-900'
-                        : 'font-medium text-slate-500'
+                        ? 'font-bold text-[#0c4a6e]'
+                        : 'font-medium text-slate-600'
                     }`}
                   >
                     {short}
