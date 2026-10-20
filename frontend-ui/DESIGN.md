@@ -1,37 +1,68 @@
-# Aquila Design System Tokens
+# AQUILA Design System — Authoritative Reference
 
-## Palette
-- Canvas: `#f4f5f8`
-- Surface: `#ffffff`
-- Text Primary: `#0f172a` (Slate-900, 16.8:1)
-- Text Secondary: `#475569` (Slate-600, 5.3:1 - WCAG AA)
-- Border: `#cbd5e1` (Slate-300, 3.1:1 UI component contrast)
-- Border Subtle: `#e2e8f0` (Slate-200)
-- Brand Accent: `#0c4a6e` (Deep Ocean Sky-900, AA) | Hover: `#075985`
-- Success: `#047857` (Emerald-700) | Bg: `#ecfdf5` | Border: `#a7f3d0`
-- Warning: `#b45309` (Amber-700) | Bg: `#fffbeb` | Border: `#fde68a`
-- Danger: `#b91c1c` (Rose-700) | Bg: `#fff1f2` | Border: `#fecdd3`
+> Source of truth: pages/admin/dashboard/components/*.jsx + layouts/AdminLayout.jsx
 
-## Typography Scale
-- Title: 24px (1.5rem) / 30px (1.875rem), bold, text-[#0c4a6e] or text-slate-900
-- Section Heading: 18px (1.125rem) / 20px (1.25rem), semibold
-- Body (Primary): 16px (1rem), line-height 1.5, regular/medium (text-slate-900)
-- Secondary / Meta: 14px (0.875rem), medium (text-slate-600)
-- Micro / Badge / Monospace: 12px (0.75rem), semibold, never under 12px
+## Container
+`border border-slate-200 rounded-md bg-white` — no shadow, no blur, no translucent white.
+Radius: `rounded-md` only. Modals: `rounded-lg`. `rounded-full` only for dots and avatars.
 
-## Geometry & Spacing
-- Spacing: 4px, 8px, 12px, 16px, 20px, 24px, 32px
-- Radius Pair: Control `12px` (`rounded-xl`), Card/Modal `16px` (`rounded-2xl`)
-- Shadow: `0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05)` (`shadow-sm`)
-- Border Style: Solid 1px, `#cbd5e1` or `#e2e8f0`
-- Focus Ring: `ring-2 ring-[#0c4a6e] ring-offset-2 outline-none`
+## Section Header
+```
+flex items-baseline justify-between border-b border-slate-200 pb-3
+```
+Title: `text-base font-semibold text-slate-900`
+Action link: `text-sm font-semibold text-[#0c4a6e] hover:underline`
 
-## Component Patterns
-- Button Primary: `bg-[#0c4a6e] hover:bg-[#075985] text-white text-sm font-semibold h-10 px-4 rounded-xl shadow-sm focus:ring-2 focus:ring-[#0c4a6e] focus:ring-offset-2`
-- Button Secondary: `bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold h-10 px-4 rounded-xl border border-slate-300 shadow-sm`
-- Button Danger: `bg-rose-700 hover:bg-rose-800 text-white text-sm font-semibold h-10 px-4 rounded-xl shadow-sm`
-- Input: `w-full bg-white border border-slate-300 text-slate-900 placeholder:text-slate-500 text-base h-11 px-3.5 rounded-xl outline-none focus:border-[#0c4a6e] focus:ring-2 focus:ring-[#0c4a6e]/20`
-- Card: `bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm`
-- Badge: `inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border`
-- Table: `w-full text-left border-collapse text-sm; th: py-3 px-4 bg-slate-50 text-slate-700 font-semibold border-b border-slate-200; td: py-3.5 px-4 text-slate-900 border-b border-slate-200`
-- Modal: `bg-white rounded-2xl border border-slate-200 shadow-xl max-w-lg w-full p-6`
+## Lists
+`divide-y divide-slate-200` rows — never a card per row.
+Row name: `text-sm font-semibold text-slate-900`
+Row meta: `text-sm text-slate-600`
+Node IDs: `font-mono text-slate-700`
+
+## Stat Strip
+One bordered container, `grid divide-x divide-slate-200`.
+Label: `text-sm text-slate-600`
+Number: `text-[32px] font-semibold tabular-nums text-slate-900`
+One factual line below in `text-sm text-slate-600`. No icons, no per-stat boxes.
+
+## Status
+Colored `●` dot + plain text label. No filled pills.
+- Danger: `text-rose-600`
+- Warning: `text-amber-600`
+- OK: `text-emerald-600`
+- Neutral: `text-slate-600`
+
+## Typography
+Body: 16px / 1rem. Secondary: 14px / `text-sm`. Minimum 12px (`text-xs`) only for IDs or timestamps.
+Weights: 400, 500, 600 only — no 700+, no `font-bold` on non-headings.
+Page title (h1): `text-2xl font-semibold text-slate-900`.
+Section title: `text-base font-semibold text-slate-900`.
+
+## Buttons & Inputs
+Primary: `bg-[#0c4a6e] text-white h-10 px-4 rounded-md text-sm font-semibold`
+Secondary: `border border-slate-300 bg-white text-slate-700 h-10 px-4 rounded-md text-sm font-semibold`
+Danger: `bg-rose-700 text-white h-10 px-4 rounded-md text-sm font-semibold`
+Inputs: `h-11 rounded-md border-slate-300 text-base`
+Focus: `focus-visible:ring-2 focus-visible:ring-[#0c4a6e]`
+Row hover: `hover:bg-slate-50`
+
+## Tables
+Sticky header `bg-slate-50`, 1px `divide-y divide-slate-200` row rules.
+Numbers right-aligned with `tabular-nums`. Status as dot column.
+
+## Sidebar Nav (AdminLayout)
+Selected: `border-l-2 border-[#0c4a6e] bg-slate-100 text-slate-900 font-semibold`
+Unselected: `border-l-2 border-transparent text-slate-700 hover:bg-slate-50`
+Icons: 16px lucide `text-slate-500 stroke-[1.75]`
+
+## Top-bar Nav (Tech/Resident Layouts)
+Selected: `border-b-2 border-[#0c4a6e] bg-slate-50 text-slate-900 font-semibold` (desktop)
+Mobile: selected = `text-[#0c4a6e] font-semibold`, dot above icon
+Touch targets: min 44px
+
+## Kill List
+`backdrop-blur-*` · `bg-gradient-*` · `rounded-xl/2xl/3xl` · `text-[9px/10px/11px]`
+`font-black` · `font-bold` on non-headings · `animate-pulse` on non-live elements
+`shadow-lg/xl/2xl` · `UPPERCASE tracking-wider` eyebrow labels
+Icon-in-colored-rounded-square · card-per-item grids · decorative sparklines
+Filled pill badges · hover-translate arrows · big centered empty states with icons

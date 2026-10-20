@@ -103,7 +103,7 @@ export default function TechLayout() {
       <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between sticky top-0 z-40">
         <Brand
           suffix={
-            <span className="text-xs font-mono font-bold tracking-wider text-amber-900 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-lg uppercase">
+            <span className="hidden sm:inline text-xs font-semibold text-slate-700 border border-slate-300 rounded-md px-2 py-0.5">
               Field
             </span>
           }
@@ -116,19 +116,17 @@ export default function TechLayout() {
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
+                `flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
                   isActive
-                    ? 'bg-[#0c4a6e] text-white shadow-sm'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'border-b-2 border-[#0c4a6e] bg-slate-50 text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-b-2 border-transparent'
                 }`
               }
             >
-              <Icon className="w-4 h-4 stroke-[2]" />
+              <Icon className="w-4 h-4 stroke-[1.75] text-slate-500" />
               <span>{label}</span>
               {hasCount && actionableCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-rose-700 text-white text-xs font-bold leading-none">
-                  {actionableCount}
-                </span>
+                <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
               )}
             </NavLink>
           ))}
@@ -139,10 +137,10 @@ export default function TechLayout() {
             type="button"
             onClick={toggleDutyStatus}
             title="Click to toggle On/Off duty status"
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono font-semibold transition cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
+            className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-sm font-semibold transition cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
               isOnDuty
-                ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+                ? 'bg-white text-emerald-700 border-emerald-400 hover:bg-emerald-50'
+                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
             }`}
           >
             <span
@@ -158,7 +156,7 @@ export default function TechLayout() {
             <button
               type="button"
               onClick={() => setBellOpen(!bellOpen)}
-              className="relative p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+              className="relative p-2 rounded-md text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
               title="Dispatch Notifications"
             >
               <Bell className="w-4 h-4 stroke-[2]" />
@@ -168,9 +166,9 @@ export default function TechLayout() {
             </button>
 
             {bellOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-md border border-slate-200 z-50 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-900">
+                  <span className="text-sm font-semibold text-slate-900">
                     Dispatch Alerts ({unreadCount})
                   </span>
                   {unreadCount > 0 && (
@@ -198,10 +196,10 @@ export default function TechLayout() {
                           !n.is_read ? 'bg-sky-50/50' : ''
                         }`}
                       >
-                        <div className="text-xs font-bold text-slate-900 truncate">
+                        <div className="text-sm font-semibold text-slate-900 truncate">
                           {n.title}
                         </div>
-                        <p className="text-xs text-slate-600 line-clamp-2 mt-0.5">
+                        <p className="text-sm text-slate-600 line-clamp-2 mt-0.5">
                           {n.message}
                         </p>
                         <span className="text-xs font-mono text-slate-500 mt-1 block">
@@ -216,7 +214,7 @@ export default function TechLayout() {
           </div>
 
           <div
-            className="hidden sm:flex w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-bold text-xs items-center justify-center"
+            className="hidden sm:flex w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-semibold text-xs items-center justify-center"
             title={user?.full_name}
           >
             {initials(user?.full_name)}
@@ -225,7 +223,7 @@ export default function TechLayout() {
             onClick={handleLogout}
             title="Sign out"
             aria-label="Sign out"
-            className="p-2 rounded-lg text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+            className="p-2 rounded-md text-slate-600 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
           >
             <LogOut className="w-4 h-4 stroke-[2]" />
           </button>

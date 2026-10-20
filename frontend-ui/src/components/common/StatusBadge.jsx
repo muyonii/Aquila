@@ -1,35 +1,37 @@
 import React from 'react';
 
+/**
+ * StatusBadge — dot + plain text label (no filled pill).
+ * Use: <StatusBadge status="OPEN" />
+ */
 export default function StatusBadge({ status = 'OPEN', className = '' }) {
   const normalized = (status || '').toUpperCase();
 
-  const styles = {
+  const dotColor = {
     // Priorities
-    'P1': 'bg-rose-50 text-rose-800 border border-rose-300 font-mono font-bold',
-    'P2': 'bg-amber-50 text-amber-900 border border-amber-300 font-mono font-bold',
-    'P3': 'bg-sky-50 text-sky-900 border border-sky-300 font-mono font-bold',
-
+    P1: 'text-rose-600',
+    P2: 'text-amber-600',
+    P3: 'text-slate-600',
     // Work Order Lifecycle
-    'OPEN': 'bg-rose-50 text-rose-800 border border-rose-300 font-bold',
-    'DISPATCHED': 'bg-sky-50 text-sky-900 border border-sky-300 font-bold',
-    'PENDING_VERIFICATION': 'bg-amber-50 text-amber-900 border border-amber-300 font-bold',
-    'CLOSED_VERIFIED': 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold',
-    'REPAIR_FAILED': 'bg-rose-50 text-rose-800 border border-rose-300 font-bold',
-    'CANCELLED': 'bg-slate-100 text-slate-700 border border-slate-300 font-medium',
-
+    OPEN: 'text-rose-600',
+    DISPATCHED: 'text-sky-600',
+    PENDING_VERIFICATION: 'text-amber-600',
+    CLOSED_VERIFIED: 'text-emerald-600',
+    REPAIR_FAILED: 'text-rose-600',
+    CANCELLED: 'text-slate-500',
     // Node States
-    'ACTIVE': 'bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold',
-    'MAINTENANCE': 'bg-amber-50 text-amber-900 border border-amber-300 font-bold',
-    'INACTIVE': 'bg-slate-100 text-slate-700 border border-slate-300 font-medium',
-    'OFFLINE': 'bg-slate-100 text-slate-700 border border-slate-300 font-medium',
-  };
+    ACTIVE: 'text-emerald-600',
+    MAINTENANCE: 'text-amber-600',
+    INACTIVE: 'text-slate-500',
+    OFFLINE: 'text-slate-500',
+  }[normalized] || 'text-slate-500';
 
-  const badgeStyle = styles[normalized] || 'bg-slate-100 text-slate-800 border border-slate-300 font-medium';
-  const label = normalized.replace('_', ' ');
+  const label = normalized.replace(/_/g, ' ');
 
   return (
-    <span className={`inline-flex items-center text-xs px-2.5 py-0.5 rounded-lg border ${badgeStyle} ${className}`}>
-      {label}
+    <span className={`inline-flex items-center gap-1.5 text-sm ${className}`}>
+      <span className={dotColor} aria-hidden="true">●</span>
+      <span className="text-slate-700">{label}</span>
     </span>
   );
 }

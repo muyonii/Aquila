@@ -77,17 +77,15 @@ export default function VerificationTimer({
   const isBurst = currentFlow >= mechanicalFloor;
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4 font-sans select-none">
+    <div className="bg-white p-5 rounded-md border border-slate-200 space-y-4 font-sans select-none">
       
       {/* Header Bar + Demo Fast-Track Button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-sky-50 text-[#0c4a6e] rounded-xl border border-sky-200">
-            <Clock className="w-5 h-5 stroke-[2]" />
-          </div>
+          <Clock className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.75]" />
           <div>
-            <h4 className="text-sm font-bold text-slate-900">Post-Repair Verification (Rule BR-07)</h4>
-            <p className="text-xs text-slate-600">15-minute quiescent line observation window</p>
+            <h4 className="text-sm font-semibold text-slate-900">Post-Repair Verification (BR-07)</h4>
+            <p className="text-sm text-slate-600">15-minute quiescent line observation window</p>
           </div>
         </div>
 
@@ -96,7 +94,7 @@ export default function VerificationTimer({
           type="button"
           onClick={() => handleEvaluateFlow(true)}
           disabled={isEvaluating}
-          className="text-xs font-semibold text-[#0c4a6e] hover:text-[#075985] flex items-center gap-1.5 bg-white hover:bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-300 shadow-sm transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+          className="inline-flex items-center gap-1.5 h-8 px-3 text-sm font-semibold text-[#0c4a6e] hover:text-[#075985] bg-white hover:bg-slate-50 rounded-md border border-slate-300 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
           title="Simulate 15-minute passage for thesis demonstration"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isEvaluating ? 'animate-spin' : ''}`} />
@@ -104,29 +102,29 @@ export default function VerificationTimer({
         </button>
       </div>
 
-      {/* Counter & Flow Gauge Block */}
-      <div className="bg-slate-900 text-white p-4 rounded-xl flex items-center justify-between">
+      {/* Counter & Flow — flat dark row */}
+      <div className="border border-slate-200 rounded-md bg-slate-50 p-4 flex items-center justify-between">
         <div>
-          <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Observation Timer</span>
-          <span className="text-3xl font-bold font-mono tracking-tight text-sky-400">
+          <span className="text-sm text-slate-600 block">Observation Timer</span>
+          <span className="text-[32px] leading-tight font-semibold font-mono tabular-nums text-slate-900">
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </span>
         </div>
         <div className="text-right">
-          <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Observed Flow</span>
-          <span className={`text-xl font-bold font-mono ${
-            isBurst ? 'text-rose-400' : isQuiescent ? 'text-emerald-400' : 'text-amber-400'
+          <span className="text-sm text-slate-600 block">Observed Flow</span>
+          <span className={`text-[32px] leading-tight font-semibold font-mono tabular-nums ${
+            isBurst ? 'text-rose-600' : isQuiescent ? 'text-emerald-600' : 'text-amber-600'
           }`}>
-            {currentFlow.toFixed(2)} <span className="text-xs font-normal">LPM</span>
+            {currentFlow.toFixed(2)} <span className="text-sm font-semibold text-slate-600">LPM</span>
           </span>
         </div>
       </div>
 
       {/* Progress Bar */}
       <div className="space-y-1.5">
-        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-[#0c4a6e] transition-all duration-1000 ease-linear rounded-full" 
+        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-[#0c4a6e] transition-all duration-1000 ease-linear"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -139,24 +137,24 @@ export default function VerificationTimer({
 
       {/* Status Messages */}
       {isBurst ? (
-        <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-xl text-xs text-rose-900 flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <strong className="block font-bold">Verification Warning: Flow Recurrent (&ge; {mechanicalFloor} LPM)</strong>
-            <p className="text-xs leading-relaxed text-rose-800">
-              Last verification failed. Flow came back during the observation window. Re-check the seal and submit again.
+        <div className="p-3.5 bg-rose-50 border border-rose-300 rounded-md text-sm text-rose-900 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-semibold block">Verification Warning: Flow Recurrent (&ge; {mechanicalFloor} LPM)</span>
+            <p className="text-sm leading-relaxed text-rose-800 mt-0.5">
+              Flow came back during the observation window. Re-check the seal and submit again.
             </p>
           </div>
         </div>
       ) : isQuiescent ? (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-          <span>Flow is quiescent (&le; {quiescentFloor} LPM). Pipe seal holding pressure perfectly...</span>
+        <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-md text-sm text-emerald-900 flex items-center gap-2">
+          <span className="text-emerald-600" aria-hidden="true">●</span>
+          <span>Flow quiescent (&le; {quiescentFloor} LPM) — pipe seal holding.</span>
         </div>
       ) : (
-        <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900 flex items-center gap-2">
-          <Activity className="w-4 h-4 text-amber-700 shrink-0" />
-          <span>Active flow detected ({currentFlow.toFixed(2)} LPM). Awaiting drop to quiescent floor...</span>
+        <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-md text-sm text-amber-900 flex items-center gap-2">
+          <span className="text-amber-600" aria-hidden="true">●</span>
+          <span>Active flow detected ({currentFlow.toFixed(2)} LPM) — awaiting quiescent floor.</span>
         </div>
       )}
     </div>

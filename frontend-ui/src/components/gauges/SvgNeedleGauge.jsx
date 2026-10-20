@@ -88,11 +88,11 @@ export default function SvgNeedleGauge({
 
       {/* Numeric Readout */}
       <div className="text-center -mt-2">
-        <span className={`text-2xl font-bold tracking-tight font-mono ${getZoneColor(value)}`}>
+        <span className={`text-2xl font-semibold tracking-tight font-mono ${getZoneColor(value)}`}>
           {Number(value).toFixed(2)}
         </span>
-        <span className="text-xs text-slate-600 font-semibold ml-1">LPM</span>
-        <p className="text-xs font-bold text-slate-600 uppercase tracking-wider mt-0.5">{label}</p>
+        <span className="text-sm text-slate-600 ml-1">LPM</span>
+        <p className="text-xs text-slate-600 mt-0.5">{label}</p>
       </div>
     </div>
   );

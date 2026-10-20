@@ -60,7 +60,7 @@ export default function ResidentLayout() {
       <header className="h-14 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
         <Brand
           suffix={
-            <span className="hidden sm:inline text-xs font-mono font-bold tracking-wider text-slate-700 uppercase border border-slate-300 rounded-lg px-2 py-0.5">
+            <span className="hidden sm:inline text-xs font-semibold text-slate-700 border border-slate-300 rounded-md px-2 py-0.5">
               Resident
             </span>
           }
@@ -73,58 +73,41 @@ export default function ResidentLayout() {
               key={path}
               to={path}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
+                `flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
                   isActive
-                    ? 'bg-[#0c4a6e] text-white shadow-sm'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
+                    ? 'border-b-2 border-[#0c4a6e] bg-slate-50 text-slate-900'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-b-2 border-transparent'
                 }`
               }
             >
-              <Icon className="w-4 h-4 stroke-[2]" />
+              <Icon className="w-4 h-4 stroke-[1.75] text-slate-500" />
               <span>{name}</span>
             </NavLink>
           ))}
         </nav>
 
         <div className="flex items-center gap-2.5">
-          {/* Accurate Meter Stream Status Pill */}
+          {/* Meter Stream Status — dot + label */}
           <span
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-semibold ${
-              isMeterStreaming
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                : isConnected
-                ? 'bg-slate-100 text-slate-700 border-slate-300'
-                : 'bg-rose-50 text-rose-800 border-rose-300'
-            }`}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold"
             title={
               isMeterStreaming
                 ? `Meter ${assignedNode} is actively streaming`
                 : `Meter ${assignedNode} has no packet in the last 45s`
             }
           >
-            <span className="flex h-1.5 w-1.5 relative">
-              {isMeterStreaming && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              )}
-              <span
-                className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
-                  isMeterStreaming
-                    ? 'bg-emerald-600'
-                    : isConnected
-                    ? 'bg-slate-500'
-                    : 'bg-rose-600'
-                }`}
-              />
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                isMeterStreaming ? 'bg-emerald-600' : isConnected ? 'bg-slate-400' : 'bg-rose-600'
+              }`}
+            />
+            <span className={isMeterStreaming ? 'text-emerald-700' : isConnected ? 'text-slate-600' : 'text-rose-700'}>
+              {isMeterStreaming ? 'Meter Live' : isConnected ? 'Meter Idle' : 'Offline'}
             </span>
-            {isMeterStreaming
-              ? 'Meter Live'
-              : isConnected
-              ? 'Meter Idle'
-              : 'Offline'}
           </span>
 
           <div
-            className="hidden sm:flex w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-bold text-xs items-center justify-center"
+            className="hidden sm:flex w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-semibold text-xs items-center justify-center"
             title={user?.full_name}
           >
             {initials(user?.full_name)}
@@ -133,7 +116,7 @@ export default function ResidentLayout() {
             onClick={handleLogout}
             title="Sign out"
             aria-label="Sign out"
-            className="p-2 rounded-lg text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+            className="p-2 rounded-md text-slate-600 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
           >
             <LogOut className="w-4 h-4 stroke-[2]" />
           </button>

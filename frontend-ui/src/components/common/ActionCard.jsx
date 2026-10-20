@@ -18,46 +18,36 @@ export default function ActionCard({
 
   const getTheme = () => {
     if (isP1) return {
-      border: 'border-slate-200 border-l-4 border-l-rose-600 bg-white',
-      badge: 'bg-rose-50 text-rose-800 border-rose-300',
-      icon: ShieldAlert,
-      iconColor: 'text-rose-700'
+      leftBorder: 'border-l-4 border-l-rose-600',
+      dotColor: 'text-rose-600',
     };
     if (isP2) return {
-      border: 'border-slate-200 border-l-4 border-l-amber-600 bg-white',
-      badge: 'bg-amber-50 text-amber-900 border-amber-300',
-      icon: AlertTriangle,
-      iconColor: 'text-amber-700'
+      leftBorder: 'border-l-4 border-l-amber-600',
+      dotColor: 'text-amber-600',
     };
     return {
-      border: 'border-slate-200 border-l-4 border-l-[#0c4a6e] bg-white',
-      badge: 'bg-sky-50 text-sky-900 border-sky-300',
-      icon: Activity,
-      iconColor: 'text-[#0c4a6e]'
+      leftBorder: 'border-l-4 border-l-[#0c4a6e]',
+      dotColor: 'text-slate-600',
     };
   };
 
   const theme = getTheme();
-  const Icon = theme.icon;
 
   return (
-    <div className={`p-4 rounded-xl border ${theme.border} space-y-2.5 shadow-sm`}>
+    <div className={`p-4 rounded-md border border-slate-200 ${theme.leftBorder} space-y-2`}>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Icon className={`w-4 h-4 ${theme.iconColor} shrink-0 stroke-[2]`} />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-600">
-            MAS Advisory Directive (INV-01)
-          </span>
-        </div>
-
-        <span className={`text-xs font-bold px-2.5 py-0.5 rounded-lg border ${theme.badge}`}>
-          {priority} Priority
+        <span className="text-sm font-semibold text-slate-700">
+          MAS Advisory Directive (INV-01)
+        </span>
+        <span className={`flex items-center gap-1.5 text-sm ${theme.dotColor}`}>
+          <span aria-hidden="true">●</span>
+          <span className="text-slate-700">{priority} Priority</span>
         </span>
       </div>
 
       <div>
-        <h4 className="text-base font-bold text-slate-900">{title}</h4>
-        <p className="text-sm text-slate-800 mt-1 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
+        <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+        <p className="text-sm text-slate-600 mt-1 leading-relaxed bg-slate-50 p-3 rounded-md border border-slate-200">
           {directive}
         </p>
       </div>
