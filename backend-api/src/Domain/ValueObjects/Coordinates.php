@@ -23,6 +23,14 @@ readonly class Coordinates
         $this->longitude = round($longitude, 7);
     }
 
+    /**
+     * Outputs Well-Known Text (WKT) for MySQL spatial POINT geometry
+     */
+    public function toWkt(): string
+    {
+        return sprintf('POINT(%f %f)', $this->longitude, $this->latitude);
+    }
+
     public function toArray(): array
     {
         return [
@@ -32,7 +40,7 @@ readonly class Coordinates
     }
 
     /**
-     * Calculates direct geodesic distance in meters to another node using the Haversine equation.
+     * Calculates direct geodesic distance in meters using the Haversine equation
      */
     public function distanceTo(self $target): float
     {

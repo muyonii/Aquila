@@ -1,223 +1,387 @@
-import StatusBadge from '../../components/common/StatusBadge';
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import StatusBadge from '../../components/common/StatusBadge';
 import { useTaskStore } from '../../stores/useTaskStore';
-import { 
-  Wrench, 
-  AlertTriangle, 
-  Clock, 
-  MapPin, 
-  Navigation, 
-  CheckCircle2, 
-  ArrowRight, 
-  ShieldAlert, 
-  RefreshCw 
+import {
+  Alert,
+  Card,
+  EmptyState,
+  Eyebrow,
+  Skeleton,
+  btnPrimary,
+  btnSecondary,
+  timeAgo
+} from '../../components/portal/ui';
+import {
+  AlertTriangle,
+  MapPin,
+  CheckCircle2,
+  ArrowRight,
+  RefreshCw,
+  Timer,
+  Wrench,
+  ShieldAlert,
+  Hand
 } from 'lucide-react';
 
+const SEVERITY_WEIGHT = { P1: 0, P2: 1, P3: 2 };
+const STATUS_WEIGHT = {
+  REPAIR_FAILED: 0,
+  DISPATCHED: 1,
+  OPEN: 2,
+  PENDING_VERIFICATION: 3,
+  CLOSED_VERIFIED: 4
+};
+
 export default function MyTasksPage() {
-  const { tasks, fetchMyTasks, isLoading, error, isOnDuty, toggleDutyStatus } = useTaskStore();
-  const [filterStatus, setFilterStatus] = useState('ALL');
+  const navigate = useNavigate();
+  const {
+    tasks,
+    fetchMyTasks,
+    claimTask,
+    isLoading,
+    error,
+    isOnDuty
+  } = useTaskStore();
+
+  const [filterStatus, setFilterStatus] = useState('ACTIONABLE');
+  const [claimingId, setClaimingId] = useState(null);
 
   useEffect(() => {
-    fetchMyTasks();
+    fetchMyTasks().catch(() => {});
   }, [fetchMyTasks]);
 
-  // Filter tasks based on selected tab
-  const filteredTasks = tasks.filter((t) => {
-    if (filterStatus === 'ALL') return true;
-    return t.status === filterStatus;
-  });
+  const counts = {
+    ACTIONABLE: tasks.filter(
+      (t) => t.status === 'DISPATCHED' || t.status === 'REPAIR_FAILED'
+    ).length,
+    OPEN: tasks.filter((t) => t.status === 'OPEN').length,
+    PENDING_VERIFICATION: tasks.filter(
+      (t) => t.status === 'PENDING_VERIFICATION'
+    ).length,
+    CLOSED_VERIFIED: tasks.filter((t) => t.status === 'CLOSED_VERIFIED').length
+  };
 
-  const dispatchedCount = tasks.filter((t) => t.status === 'DISPATCHED').length;
-  const verifyingCount = tasks.filter((t) => t.status === 'PENDING_VERIFICATION').length;
-  const failedCount = tasks.filter((t) => t.status === 'REPAIR_FAILED').length;
+  // Auto-switch to OPEN calls if plumber has 0 assigned tasks but there is an unassigned OPEN leak!
+  useEffect(() => {
+    if (counts.ACTIONABLE === 0 && counts.OPEN > 0 && filterStatus === 'ACTIONABLE') {
+      setFilterStatus('OPEN');
+    }
+  }, [counts.ACTIONABLE, counts.OPEN]);
+
+  const FILTERS = [
+    { key: 'ACTIONABLE', label: 'My To-Do', count: counts.ACTIONABLE },
+    { key: 'OPEN', label: 'Open Calls', count: counts.OPEN },
+    {
+      key: 'PENDING_VERIFICATION',
+      label: 'Verifying (15m)',
+      count: counts.PENDING_VERIFICATION
+    },
+    {
+      key: 'CLOSED_VERIFIED',
+      label: 'Completed',
+      count: counts.CLOSED_VERIFIED
+    }
+  ];
+
+  const filteredTasks = tasks
+    .filter((t) => {
+      if (filterStatus === 'ACTIONABLE') {
+        return t.status === 'DISPATCHED' || t.status === 'REPAIR_FAILED';
+      }
+      return t.status === filterStatus;
+    })
+    .slice()
+    .sort(
+      (a, b) =>
+        (SEVERITY_WEIGHT[a.severity_level] ?? 9) -
+          (SEVERITY_WEIGHT[b.severity_level] ?? 9) ||
+        (STATUS_WEIGHT[a.status] ?? 9) - (STATUS_WEIGHT[b.status] ?? 9)
+    );
+
+  const handleClaim = async (incidentId) => {
+    setClaimingId(incidentId);
+    try {
+      await claimTask(incidentId);
+      navigate(`/tasks/${incidentId}`);
+    } catch (err) {
+      alert(err.message || 'Could not claim work order.');
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
   return (
-    <div className="space-y-4 max-w-2xl mx-auto pb-4">
-      {/* 1. Header & Duty Status Banner */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base font-black text-slate-900 leading-tight">Assigned Work Orders</h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            {tasks.length} active jobs in queue
+    <div className="space-y-4 max-w-2xl mx-auto">
+      {/* 1. Header + Refresh Button */}
+      <div className="flex items-end justify-between gap-3">
+        <div className="space-y-1 min-w-0">
+          <Eyebrow>Field Operations</Eyebrow>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Work Orders
+          </h1>
+          <p className="text-xs text-slate-500 font-medium">
+            {counts.ACTIONABLE} assigned to you{' '}
+            <span className="text-slate-300">•</span>{' '}
+            {counts.OPEN} open call{counts.OPEN !== 1 ? 's' : ''}{' '}
+            <span className="text-slate-300">•</span>{' '}
+            {counts.CLOSED_VERIFIED} completed
           </p>
         </div>
 
-        {/* Duty Toggle Button */}
         <button
-          onClick={toggleDutyStatus}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-            isOnDuty 
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-              : 'bg-slate-100 text-slate-500 border border-slate-200'
-          }`}
+          onClick={() => fetchMyTasks().catch(() => {})}
+          disabled={isLoading}
+          aria-label="Refresh work orders"
+          className="w-10 h-10 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center active:scale-95 transition cursor-pointer shadow-2xs"
+          title="Refresh Queue"
         >
-          <span className={`w-2 h-2 rounded-full ${isOnDuty ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-          <span>{isOnDuty ? 'On Duty' : 'Off Duty'}</span>
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {!isOnDuty && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>You are marked <strong>Off Duty</strong>. New emergency dispatches will not ring on your device.</span>
-        </div>
+        <Alert tone="amber">
+          You are currently <strong>off duty</strong>. Tap the status pill in the top bar to go back on duty.
+        </Alert>
       )}
 
-      {/* 2. Status Filter Tabs */}
-      <div className="flex gap-1.5 bg-slate-200/60 p-1 rounded-xl text-xs overflow-x-auto">
-        <button
-          onClick={() => setFilterStatus('ALL')}
-          className={`px-3 py-1.5 rounded-lg font-bold transition shrink-0 ${
-            filterStatus === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          All ({tasks.length})
-        </button>
-        <button
-          onClick={() => setFilterStatus('DISPATCHED')}
-          className={`px-3 py-1.5 rounded-lg font-bold transition shrink-0 flex items-center gap-1 ${
-            filterStatus === 'DISPATCHED' ? 'bg-white text-rose-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span>Dispatched</span>
-          {dispatchedCount > 0 && (
-            <span className="bg-rose-100 text-rose-700 px-1.5 py-0.2 rounded-full text-[10px]">
-              {dispatchedCount}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setFilterStatus('PENDING_VERIFICATION')}
-          className={`px-3 py-1.5 rounded-lg font-bold transition shrink-0 flex items-center gap-1 ${
-            filterStatus === 'PENDING_VERIFICATION' ? 'bg-white text-sky-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span>Verifying</span>
-          {verifyingCount > 0 && (
-            <span className="bg-sky-100 text-sky-700 px-1.5 py-0.2 rounded-full text-[10px]">
-              {verifyingCount}
-            </span>
-          )}
-        </button>
-        {failedCount > 0 && (
-          <button
-            onClick={() => setFilterStatus('REPAIR_FAILED')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition shrink-0 flex items-center gap-1 ${
-              filterStatus === 'REPAIR_FAILED' ? 'bg-white text-amber-800 shadow-sm' : 'text-amber-700'
-            }`}
-          >
-            <span>Failed ({failedCount})</span>
-          </button>
-        )}
-      </div>
-
-      {/* 3. Task Cards Feed */}
-      {isLoading ? (
-        <div className="p-12 text-center text-xs text-slate-400">Loading work orders...</div>
-      ) : error ? (
-        <div className="p-4 bg-rose-50 text-rose-700 text-xs rounded-xl flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => fetchMyTasks()} className="underline font-bold">Retry</button>
-        </div>
-      ) : filteredTasks.length === 0 ? (
-        <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
-          <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-          <h3 className="text-sm font-bold text-slate-800">No Pending Tasks</h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {filterStatus === 'ALL' 
-              ? 'All clear! There are currently no work orders assigned to you.' 
-              : `No tasks found in status "${filterStatus}".`}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredTasks.map((task) => {
-            const isP1 = task.severity_level === 'P1';
-            const isPendingVerif = task.status === 'PENDING_VERIFICATION';
-            const isFailed = task.status === 'REPAIR_FAILED';
-
-            const mapsUrl = task.latitude && task.longitude 
-              ? `https://www.google.com/maps/dir/?api=1&destination=${task.latitude},${task.longitude}`
-              : null;
-
-            return (
-              <div
-                key={task.incident_id}
-                className={`bg-white p-4 rounded-2xl border transition shadow-sm ${
-                  isP1 
-                    ? 'border-rose-300 ring-1 ring-rose-100' 
-                    : isPendingVerif
-                    ? 'border-sky-300 ring-1 ring-sky-100'
-                    : isFailed
-                    ? 'border-amber-300 ring-1 ring-amber-100'
-                    : 'border-slate-200'
+      {/* 2. Stage Filter Tabs */}
+      <div
+        className="flex gap-1 bg-white/75 border border-black/[0.05] p-1 rounded-xl overflow-x-auto [scrollbar-width:none]"
+        role="tablist"
+      >
+        {FILTERS.map((f) => {
+          const active = filterStatus === f.key;
+          return (
+            <button
+              key={f.key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setFilterStatus(f.key)}
+              className={`flex-1 min-h-[40px] px-3 rounded-lg text-xs font-semibold transition shrink-0 flex items-center justify-center gap-1.5 cursor-pointer ${
+                active
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>{f.label}</span>
+              <span
+                className={`text-[10px] font-mono px-1.5 rounded-full ${
+                  active
+                    ? 'bg-white/20 text-white'
+                    : f.key === 'OPEN' && f.count > 0
+                    ? 'bg-rose-100 text-rose-700 font-bold'
+                    : 'bg-slate-100 text-slate-500'
                 }`}
               >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <StatusBadge status={task.severity_level} />
-                      <StatusBadge status={task.status} />
+                {f.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 3. Work Order Feed */}
+      {isLoading && tasks.length === 0 ? (
+        <div className="space-y-3">
+          <Skeleton className="h-44 w-full rounded-2xl" />
+          <Skeleton className="h-44 w-full rounded-2xl" />
+        </div>
+      ) : error ? (
+        <Alert
+          tone="rose"
+          action={
+            <button
+              onClick={() => fetchMyTasks().catch(() => {})}
+              className="text-xs font-bold underline shrink-0"
+            >
+              Retry
+            </button>
+          }
+        >
+          {error}
+        </Alert>
+      ) : filteredTasks.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={CheckCircle2}
+            title={
+              filterStatus === 'ACTIONABLE'
+                ? "You're all caught up"
+                : filterStatus === 'OPEN'
+                ? 'No unassigned open calls'
+                : filterStatus === 'PENDING_VERIFICATION'
+                ? 'No repairs in 15-min verification'
+                : 'No completed jobs yet'
+            }
+            body={
+              filterStatus === 'ACTIONABLE' && counts.OPEN > 0
+                ? `There ${counts.OPEN === 1 ? 'is 1 unassigned open call' : `are ${counts.OPEN} unassigned open calls`} in Purok 2 waiting to be claimed.`
+                : 'No work orders in this stage right now.'
+            }
+            action={
+              filterStatus === 'ACTIONABLE' && counts.OPEN > 0 ? (
+                <button
+                  onClick={() => setFilterStatus('OPEN')}
+                  className={btnPrimary}
+                >
+                  View {counts.OPEN} Open Call{counts.OPEN !== 1 ? 's' : ''}
+                </button>
+              ) : null
+            }
+          />
+        </Card>
+      ) : (
+        <ul className="space-y-3">
+          {filteredTasks.map((task) => {
+            const isP1 = task.severity_level === 'P1';
+            const isOpenUnassigned = task.status === 'OPEN';
+            const isPendingVerif = task.status === 'PENDING_VERIFICATION';
+            const isFailed = task.status === 'REPAIR_FAILED';
+            const isCompleted = task.status === 'CLOSED_VERIFIED';
+            const isOnsiteMaint =
+              task.status === 'DISPATCHED' &&
+              task.node_status === 'MAINTENANCE';
+
+            const accent = isCompleted
+              ? 'bg-emerald-500'
+              : isFailed || isP1
+              ? 'bg-rose-500'
+              : isPendingVerif
+              ? 'bg-sky-500'
+              : 'bg-amber-500';
+
+            const ago = timeAgo(task.detected_at);
+
+            return (
+              <li key={task.incident_id}>
+                <Card className="relative overflow-hidden">
+                  <span
+                    className={`absolute left-0 top-0 bottom-0 w-1.5 ${accent}`}
+                    aria-hidden="true"
+                  />
+                  <div className="p-4 pl-5 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <StatusBadge status={task.severity_level} />
+                        <StatusBadge status={task.status} />
+                        {isOnsiteMaint && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            On-Site (Maint. Mode)
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        #{task.incident_id.slice(0, 8)}
+                      </span>
                     </div>
 
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      #{task.incident_id.slice(0, 8)}
-                    </span>
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 leading-snug">
+                        {task.household_label || task.node_id}
+                      </h3>
+
+                      <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-slate-500 mt-1">
+                        <span className="inline-flex items-center gap-1 font-medium">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                          {task.location_name || task.purok_cluster || 'Purok 2'}
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span className="font-mono font-bold text-slate-700">
+                          {task.node_id}
+                        </span>
+                        {ago && (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <span>{ago}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* SOP Directive Preview */}
+                      <div className="mt-2.5 p-2.5 rounded-xl bg-slate-50 border border-black/[0.04] text-xs text-slate-700 flex items-start gap-2">
+                        <ShieldAlert className="w-4 h-4 text-[#0284c7] shrink-0 mt-0.5" />
+                        <div className="min-w-0">
+                          <span className="font-bold text-slate-900 block">
+                            {task.display_name ||
+                              task.action_card_title ||
+                              task.incident_type}
+                          </span>
+                          <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5">
+                            {task.action_directive || task.repair_notes}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {isFailed && (
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 bg-rose-50 px-3 py-2 rounded-xl border border-rose-200">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>
+                          Verification failed: Flow returned during 15m check. Re-inspect pipe seal.
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-stretch gap-2 pt-1">
+                      <Link
+                        to={`/map?focus=${task.node_id}`}
+                        className={`${btnSecondary} shrink-0 px-3.5`}
+                      >
+                        <MapPin className="w-4 h-4 text-[#0284c7]" />
+                        <span>Field Map</span>
+                      </Link>
+
+                      {isOpenUnassigned ? (
+                        <button
+                          type="button"
+                          onClick={() => handleClaim(task.incident_id)}
+                          disabled={claimingId === task.incident_id}
+                          className={`${btnPrimary} flex-1 min-h-[48px] !bg-[#0c4a6e] hover:!bg-[#075985] cursor-pointer`}
+                        >
+                          <Hand className="w-4 h-4 text-sky-300" />
+                          <span>
+                            {claimingId === task.incident_id
+                              ? 'Claiming...'
+                              : 'Accept & Claim Work Order'}
+                          </span>
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/tasks/${task.incident_id}`}
+                          className={`${
+                            isPendingVerif || isCompleted
+                              ? btnSecondary
+                              : btnPrimary
+                          } flex-1 min-h-[48px]`}
+                        >
+                          {isPendingVerif ? (
+                            <Timer className="w-4 h-4 text-sky-600" />
+                          ) : isCompleted ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Wrench className="w-4 h-4 text-sky-400" />
+                          )}
+                          <span>
+                            {isCompleted
+                              ? 'View Completion Record'
+                              : isPendingVerif
+                              ? 'View 15m Verification Timer'
+                              : isOnsiteMaint
+                              ? 'Continue On-Site Repair'
+                              : 'Open Guided Workbench'}
+                          </span>
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      )}
+                    </div>
                   </div>
-
-                <div className="mb-3">
-                  <h3 className="text-sm font-black text-slate-900 leading-snug">
-                    {task.household_label || task.node_id}
-                  </h3>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                    <span className="flex items-center gap-1 font-medium">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                      {task.purok_cluster || 'Purok 2'}
-                    </span>
-                    <span>•</span>
-                    <span className="font-mono text-slate-700">{task.node_id}</span>
-                  </div>
-
-                  {task.repair_notes && (
-                    <p className="text-[11px] text-slate-600 mt-2 bg-slate-50 p-2 rounded-lg line-clamp-2">
-                      {task.repair_notes}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                  {mapsUrl ? (
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-2 rounded-xl transition"
-                    >
-                      <Navigation className="w-3.5 h-3.5 text-sky-600" />
-                      <span>GPS Route</span>
-                    </a>
-                  ) : (
-                    <span className="text-[10px] text-slate-400">No GPS coords</span>
-                  )}
-
-                  <Link
-                    to={`/tasks/${task.incident_id}`}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm ${
-                      isPendingVerif
-                        ? 'bg-sky-600 hover:bg-sky-700 text-white'
-                        : isP1
-                        ? 'bg-rose-600 hover:bg-rose-700 text-white'
-                        : 'bg-slate-900 hover:bg-slate-800 text-white'
-                    }`}
-                  >
-                    <span>{isPendingVerif ? 'View Timer' : 'Inspect & Repair'}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
+                </Card>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

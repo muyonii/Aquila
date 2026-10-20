@@ -1,1 +1,1 @@
-export { default } from './dashboard/NetworkMapPage';
+export { default } from './network-map/NetworkMapPage';

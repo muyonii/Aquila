@@ -1,6 +1,5 @@
-// frontend-ui/src/pages/admin/users/components/UserTable.jsx
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Clock, CheckCircle2 } from 'lucide-react';
 
 export default function UserTable({ users, selectedUserId, onSelectUser }) {
   const getRoleLabel = (role) => {
@@ -25,15 +24,22 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
               <th className="py-3 px-4 pl-6">User Profile</th>
               <th className="py-3 px-4">Role</th>
               <th className="py-3 px-4">Meter Assignment</th>
-              <th className="py-3 px-4">Purok Cluster</th>
+              <th className="py-3 px-4">Status</th>
               <th className="py-3 px-4 pr-6 text-right">Dossier</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-black/[0.03]">
             {users.map((u) => {
               const isSelected = selectedUserId === u.user_id;
+              const isPending = u.role === 'resident' && u.approval_status === 'PENDING';
+              const isInactive = Number(u.is_active) === 0;
               const initials = u.full_name
-                ? u.full_name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
+                ? u.full_name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .slice(0, 2)
+                    .join('')
+                    .toUpperCase()
                 : 'U';
 
               return (
@@ -41,7 +47,7 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
                   key={u.user_id}
                   onClick={() => onSelectUser(u)}
                   className={`group transition-colors duration-150 cursor-pointer ${
-                    isSelected ? 'bg-black/[0.05]' : 'hover:bg-black/[0.02]'
+                    isSelected ? 'bg-sky-50/70' : 'hover:bg-black/[0.02]'
                   }`}
                 >
                   {/* User Profile */}
@@ -61,14 +67,14 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
                     </div>
                   </td>
 
-                  {/* Neutral Monochrome Role Pill */}
+                  {/* Role Pill */}
                   <td className="py-3.5 px-4">
                     <span className="px-2.5 py-0.5 rounded-md text-[10.5px] font-medium bg-black/[0.04] text-slate-700 border border-black/[0.06]">
                       {getRoleLabel(u.role)}
                     </span>
                   </td>
 
-                  {/* Neutral Meter Assignment */}
+                  {/* Meter Assignment */}
                   <td className="py-3.5 px-4 text-xs">
                     {u.role === 'resident' ? (
                       u.assigned_node_id ? (
@@ -81,21 +87,35 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
                           </span>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                        <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
                           Unassigned
                         </span>
                       )
                     ) : (
-                      <span className="text-slate-400 text-[11px] font-medium">Global Cluster Access</span>
+                      <span className="text-slate-400 text-[11px] font-medium">
+                        Global Cluster Access
+                      </span>
                     )}
                   </td>
 
-                  {/* Purok Cluster */}
-                  <td className="py-3.5 px-4 text-xs text-slate-500">
-                    {u.purok_cluster || 'Balanga HQ'}
+                  {/* Account & Meter Approval Status */}
+                  <td className="py-3.5 px-4 text-xs">
+                    {isInactive ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                        Suspended
+                      </span>
+                    ) : isPending ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                        <Clock className="w-3 h-3" /> Pending Approval
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3" /> Active
+                      </span>
+                    )}
                   </td>
 
-                  {/* Neutral Inspect Link */}
+                  {/* Inspect Link */}
                   <td className="py-3.5 px-4 pr-6 text-right">
                     <button
                       type="button"

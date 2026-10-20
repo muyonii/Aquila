@@ -1,61 +1,83 @@
-{
-  "profile_info": {
-    "system_name": "AQUILA Hydraulic Diurnal Profiles",
-    "version": "2.2.0",
-    "timezone": "Asia/Manila"
+[
+  {
+    "node_id": "NODE-B1-001",
+    "household_label": "Household 01 (Physical Testbed)",
+    "location_name": "Lot 14 Blk 2, Bougainvillea St., Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": null,
+    "is_physical": true,
+    "coordinates": { "lat": 14.6778, "lng": 120.5412 }
   },
-  "diurnal_schedule": {
-    "nocturnal": {
-      "hours": [0, 1, 2, 3, 4],
-      "active_draw_probability": 0.05,
-      "flow_min_lpm": 0.5,
-      "flow_max_lpm": 2.0,
-      "description": "Late night rest; near-zero consumption"
-    },
-    "morning_peak": {
-      "hours": [5, 6, 7, 8],
-      "active_draw_probability": 0.70,
-      "flow_min_lpm": 3.0,
-      "flow_max_lpm": 7.5,
-      "description": "Morning rush hour; bathing, breakfast cooking, laundry"
-    },
-    "midday_lull": {
-      "hours": [9, 10, 11, 12, 13, 14, 15, 16],
-      "active_draw_probability": 0.25,
-      "flow_min_lpm": 1.5,
-      "flow_max_lpm": 4.5,
-      "description": "Daytime baseline draw; intermittent chores"
-    },
-    "evening_peak": {
-      "hours": [17, 18, 19, 20, 21],
-      "active_draw_probability": 0.60,
-      "flow_min_lpm": 2.5,
-      "flow_max_lpm": 6.0,
-      "description": "Evening return; dinner preparation, dishwashing"
-    },
-    "late_evening": {
-      "hours": [22, 23],
-      "active_draw_probability": 0.15,
-      "flow_min_lpm": 1.0,
-      "flow_max_lpm": 3.0,
-      "description": "Winding down; minimal bathroom use"
-    }
+  {
+    "node_id": "NODE-B1-002",
+    "household_label": "Household 02 (Santos Family)",
+    "location_name": "Lot 18 Blk 2, Rosal Ext., Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-001",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6772, "lng": 120.5422 }
   },
-  "leak_profiles": {
-    "fissure_low": {
-      "flow_rate_lpm": 1.85,
-      "variance_std": 0.02,
-      "description": "Small subterranean hairline fissure"
-    },
-    "lateral_rupture": {
-      "flow_rate_lpm": 3.42,
-      "variance_std": 0.035,
-      "description": "Standard lateral PVC conduit fracture (Default L key)"
-    },
-    "main_joint_burst": {
-      "flow_rate_lpm": 6.80,
-      "variance_std": 0.06,
-      "description": "Major coupling blowout on primary distribution branch"
-    }
+  {
+    "node_id": "NODE-B1-003",
+    "household_label": "Household 03 (Reyes Family)",
+    "location_name": "Corner Sampaguita St. & Main Road, Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-001",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6766, "lng": 120.5415 }
+  },
+  {
+    "node_id": "NODE-B1-004",
+    "household_label": "Household 04 (Cruz Family)",
+    "location_name": "Purok 2 Water Terminal Near Daycare",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-002",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6761, "lng": 120.5430 }
+  },
+  {
+    "node_id": "NODE-B1-005",
+    "household_label": "Household 05 (Bautista Family)",
+    "location_name": "Blk 5 Lot 9, Ilang-Ilang Lane, Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-002",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6769, "lng": 120.5436 }
+  },
+  {
+    "node_id": "NODE-B1-006",
+    "household_label": "Household 06 (Mendoza Family)",
+    "location_name": "Sitio Riverside Tap 1, Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-003",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6756, "lng": 120.5411 }
+  },
+  {
+    "node_id": "NODE-B1-007",
+    "household_label": "Household 07 (Garcia Family)",
+    "location_name": "Sitio Riverside Tap 2, Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-003",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6750, "lng": 120.5421 }
+  },
+  {
+    "node_id": "NODE-B1-008",
+    "household_label": "Household 08 (Navarro Family)",
+    "location_name": "Elevated Ridge Zone A, Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-004",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6754, "lng": 120.5442 }
+  },
+  {
+    "node_id": "NODE-B1-009",
+    "household_label": "Household 09 (Elevated Terminal)",
+    "location_name": "Elevated Ridge Zone B Terminal, Purok 2",
+    "purok_cluster": "Purok 2",
+    "parent_node_id": "NODE-B1-004",
+    "is_physical": false,
+    "coordinates": { "lat": 14.6748, "lng": 120.5452 }
   }
-}
+]

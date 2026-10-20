@@ -1,9 +1,5 @@
 import React from 'react';
 
-/**
- * Reusable Status & Priority Badge
- * @param {string} status - P1, P2, P3, OPEN, DISPATCHED, PENDING_VERIFICATION, CLOSED_VERIFIED, REPAIR_FAILED, CANCELLED, ACTIVE, MAINTENANCE
- */
 export default function StatusBadge({ status = 'OPEN', className = '' }) {
   const normalized = (status || '').toUpperCase();
 

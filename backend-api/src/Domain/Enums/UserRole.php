@@ -33,4 +33,13 @@ enum UserRole: string
     {
         return $this === self::RESIDENT;
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::ADMIN      => 'Utility Administrator',
+            self::TECHNICIAN => 'Field Repair Technician',
+            self::RESIDENT   => 'Community Resident',
+        };
+    }
 }

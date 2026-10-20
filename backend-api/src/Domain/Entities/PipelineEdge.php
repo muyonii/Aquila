@@ -11,7 +11,8 @@ readonly class PipelineEdge
         public string $downstreamNodeId,
         public float $pipeDiameterMm = 25.00,
         public string $pipeMaterial = 'PVC',
-        public ?float $lengthMeters = null
+        public ?float $lengthMeters = null,
+        public ?string $createdAt = null
     ) {}
 
     public static function fromArray(array $row): self
@@ -22,7 +23,8 @@ readonly class PipelineEdge
             downstreamNodeId: (string)$row['downstream_node_id'],
             pipeDiameterMm: isset($row['pipe_diameter_mm']) ? (float)$row['pipe_diameter_mm'] : 25.00,
             pipeMaterial: (string)($row['pipe_material'] ?? 'PVC'),
-            lengthMeters: isset($row['length_meters']) ? (float)$row['length_meters'] : null
+            lengthMeters: isset($row['length_meters']) ? (float)$row['length_meters'] : null,
+            createdAt: isset($row['created_at']) ? (string)$row['created_at'] : null
         );
     }
 
@@ -34,7 +36,8 @@ readonly class PipelineEdge
             'downstream_node_id' => $this->downstreamNodeId,
             'pipe_diameter_mm'   => $this->pipeDiameterMm,
             'pipe_material'      => $this->pipeMaterial,
-            'length_meters'      => $this->lengthMeters
+            'length_meters'      => $this->lengthMeters,
+            'created_at'         => $this->createdAt
         ];
     }
 }

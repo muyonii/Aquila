@@ -22,26 +22,28 @@ class MySQLPipelineEdgeRepository implements PipelineEdgeRepositoryInterface
      */
     public function findAll(): array
     {
-        $stmt = $this->db->query("SELECT * FROM PIPELINE_DAG_EDGE ORDER BY upstream_node_id ASC");
+        $stmt = $this->db->query("SELECT * FROM pipeline_dag_edge ORDER BY upstream_node_id ASC, downstream_node_id ASC");
         return array_map(fn($row) => PipelineEdge::fromArray($row), $stmt->fetchAll());
     }
 
     /**
+     * Finds immediate downstream children connected to an upstream feeder
      * @return PipelineEdge[]
      */
     public function findDownstreamOf(string $upstreamNodeId): array
     {
-        $stmt = $this->db->prepare("SELECT * FROM PIPELINE_DAG_EDGE WHERE upstream_node_id = :id");
+        $stmt = $this->db->prepare("SELECT * FROM pipeline_dag_edge WHERE upstream_node_id = :id");
         $stmt->execute([':id' => $upstreamNodeId]);
         return array_map(fn($row) => PipelineEdge::fromArray($row), $stmt->fetchAll());
     }
 
     /**
+     * Finds upstream feeder feeding a specific downstream meter
      * @return PipelineEdge[]
      */
     public function findUpstreamOf(string $downstreamNodeId): array
     {
-        $stmt = $this->db->prepare("SELECT * FROM PIPELINE_DAG_EDGE WHERE downstream_node_id = :id");
+        $stmt = $this->db->prepare("SELECT * FROM pipeline_dag_edge WHERE downstream_node_id = :id");
         $stmt->execute([':id' => $downstreamNodeId]);
         return array_map(fn($row) => PipelineEdge::fromArray($row), $stmt->fetchAll());
     }
@@ -49,7 +51,8 @@ class MySQLPipelineEdgeRepository implements PipelineEdgeRepositoryInterface
     public function addEdge(PipelineEdge $edge): void
     {
         $stmt = $this->db->prepare(
-            "INSERT INTO PIPELINE_DAG_EDGE (upstream_node_id, downstream_node_id, pipe_diameter_mm, pipe_material, length_meters)
+            "INSERT INTO pipeline_dag_edge 
+             (upstream_node_id, downstream_node_id, pipe_diameter_mm, pipe_material, length_meters)
              VALUES (:upstream, :downstream, :diameter, :material, :length)
              ON DUPLICATE KEY UPDATE
                  pipe_diameter_mm = VALUES(pipe_diameter_mm),
@@ -68,7 +71,8 @@ class MySQLPipelineEdgeRepository implements PipelineEdgeRepositoryInterface
     public function removeEdge(string $upstreamNodeId, string $downstreamNodeId): void
     {
         $stmt = $this->db->prepare(
-            "DELETE FROM PIPELINE_DAG_EDGE WHERE upstream_node_id = :up AND downstream_node_id = :down"
+            "DELETE FROM pipeline_dag_edge 
+             WHERE upstream_node_id = :up AND downstream_node_id = :down"
         );
         $stmt->execute([':up' => $upstreamNodeId, ':down' => $downstreamNodeId]);
     }

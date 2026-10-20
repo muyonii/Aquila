@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Aquila\Tests\Unit\Services;
 
+use Aquila\Config\AppConfig;
 use Aquila\Domain\Entities\IncidentTicket;
 use Aquila\Domain\Enums\IncidentSeverity;
 use Aquila\Domain\Enums\IncidentStatus;
@@ -16,7 +17,7 @@ class RepairVerificationServiceTest
         return new IncidentTicket(
             incidentId: 'test-uuid-002',
             nodeId: 'NODE-B1-003',
-            incidentType: 'CRITICAL_LEAK',
+            templateId: 1,
             severityLevel: IncidentSeverity::P1,
             detectedAt: '2026-09-28 10:00:00',
             verifiedAt: null,
@@ -27,28 +28,32 @@ class RepairVerificationServiceTest
         );
     }
 
-    public function testSuccessfulAutoClosureAfter15MinutesQuiescent(): void
+    public function testSuccessfulAutoClosureAfterQuiescentWindow(): void
     {
         $service = new RepairVerificationService();
         $ticket = $this->createPendingTicket();
+        $window = $service->getVerificationWindowSeconds();
 
-        // 0.02 LPM (quiescent) and 900 seconds elapsed (15 min)
-        $outcome = $service->evaluateQuiescentFlow($ticket, new FlowRate(0.02), 900);
+        // Flow <= 0.05 LPM and elapsed seconds >= window
+        $outcome = $service->evaluateQuiescentFlow($ticket, new FlowRate(0.02), $window);
 
-        assert($outcome === IncidentStatus::CLOSED_VERIFIED, 'Ticket must be CLOSED_VERIFIED when quiescent for 900s');
+        assert($outcome === IncidentStatus::CLOSED_VERIFIED, 'Ticket must be CLOSED_VERIFIED when quiescent');
         assert($ticket->status === IncidentStatus::CLOSED_VERIFIED);
         assert($ticket->verifiedAt !== null);
     }
 
-    public function testStillPendingWhenUnder15Minutes(): void
+    public function testStillPendingWhenUnderVerificationDuration(): void
     {
         $service = new RepairVerificationService();
         $ticket = $this->createPendingTicket();
+        $window = $service->getVerificationWindowSeconds();
 
-        // 0.02 LPM (quiescent), but only 450 seconds elapsed
-        $outcome = $service->evaluateQuiescentFlow($ticket, new FlowRate(0.02), 450);
+        // 0.02 LPM (quiescent), but elapsed seconds is half the window
+        $halfWindow = (int)($window / 2);
+        $outcome = $service->evaluateQuiescentFlow($ticket, new FlowRate(0.02), $halfWindow);
 
-        assert($outcome === IncidentStatus::PENDING_VERIFICATION, 'Ticket must remain PENDING_VERIFICATION before 900s elapsed');
+        assert($outcome === IncidentStatus::PENDING_VERIFICATION);
+        assert($service->calculateRemainingSeconds($halfWindow) === ($window - $halfWindow));
     }
 
     public function testRecurrentFlowFailsRepairImmediately(): void
@@ -56,11 +61,25 @@ class RepairVerificationServiceTest
         $service = new RepairVerificationService();
         $ticket = $this->createPendingTicket();
 
-        // Flow burst: 2.10 LPM >= 1.0 LPM mechanical floor
-        $outcome = $service->evaluateQuiescentFlow($ticket, new FlowRate(2.10), 120);
+        // Recurrent burst: 2.10 LPM >= 1.0 LPM floor (even after only 10s)
+        $outcome = $service->evaluateQuiescentFlow($ticket, new FlowRate(2.10), 10);
 
-        assert($outcome === IncidentStatus::REPAIR_FAILED, 'Recurrent burst must transition to REPAIR_FAILED');
+        assert($outcome === IncidentStatus::REPAIR_FAILED, 'Recurrent burst must fail repair immediately');
         assert($ticket->status === IncidentStatus::REPAIR_FAILED);
-        assert(str_contains($ticket->repairNotes, 'Flow recurrent at 2.1 L/min'));
+        assert(str_contains((string)$ticket->repairNotes, 'Recurrent fluid burst'));
+    }
+
+    public function testUnsealedWeepingPipeFailsAfterWindowExpires(): void
+    {
+        $service = new RepairVerificationService();
+        $ticket = $this->createPendingTicket();
+        $window = $service->getVerificationWindowSeconds();
+
+        // Weeping flow: 0.35 LPM (above 0.05 quiescent floor, but below 1.0 burst) after window expired
+        $outcome = $service->evaluateQuiescentFlow($ticket, new FlowRate(0.35), $window);
+
+        assert($outcome === IncidentStatus::REPAIR_FAILED, 'Pipe failing to reach quiescent seal must be marked REPAIR_FAILED');
+        assert($ticket->status === IncidentStatus::REPAIR_FAILED);
+        assert(str_contains((string)$ticket->repairNotes, 'Conduit unsealed'));
     }
 }

@@ -1,16 +1,12 @@
 import React from 'react';
-import { Battery, BatteryLow, BatteryWarning, AlertTriangle } from 'lucide-react';
+import { Battery, BatteryLow, AlertTriangle } from 'lucide-react';
 
-/**
- * 18650 Cell Voltage & Power Meter
- * @param {number} voltage - Battery voltage in Volts (e.g. 4.10)
- */
 export default function BatteryIndicator({ voltage = 4.10 }) {
   const safeVolts = Number(voltage) || 0;
   const isLow = safeVolts < 3.35;
   const isCritical = safeVolts < 3.20;
 
-  // Map 3.0V (0%) to 4.2V (100%)
+  // Map cell voltage: 3.0V (0%) to 4.2V (100%)
   const percentage = Math.max(0, Math.min(100, Math.round(((safeVolts - 3.0) / (4.2 - 3.0)) * 100)));
 
   const getStatusColor = () => {

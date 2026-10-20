@@ -7,6 +7,9 @@ use Aquila\Domain\Enums\UserRole;
 
 class RoleMiddleware
 {
+    /**
+     * Enforces that authenticated user possesses at least one of the allowed roles
+     */
     public static function enforce(UserRole ...$allowedRoles): array
     {
         $currentUser = JwtAuthMiddleware::authenticate();
@@ -18,7 +21,7 @@ class RoleMiddleware
             echo json_encode([
                 "success" => false,
                 "error" => [
-                    "code" => "FORBIDDEN",
+                    "code"    => "FORBIDDEN",
                     "message" => "Access denied. Operation requires role: " . implode(', ', array_map(fn($r) => $r->value, $allowedRoles))
                 ]
             ], JSON_PRETTY_PRINT);

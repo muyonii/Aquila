@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { residentApi } from '../../api/resident_api';
-import { 
-  History, 
-  Calendar, 
-  Waves, 
-  TrendingUp, 
-  Clock, 
-  Table, 
-  AlertTriangle 
-} from 'lucide-react';
+import {
+  Alert,
+  Card,
+  EmptyState,
+  Eyebrow,
+  Label,
+  Skeleton,
+  StatTile,
+} from '../../components/portal/ui';
+import { Calendar, TrendingUp, Table, AlertTriangle, RefreshCw, Droplet } from 'lucide-react';
 
 export default function HistoryPage() {
   const user = useAuthStore((state) => state.user);
   const assignedNodeId = user?.assigned_node_id;
 
   const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!!assignedNodeId);
   const [error, setError] = useState(null);
+  const [selectedIdx, setSelectedIdx] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     async function fetchHistory() {
@@ -25,6 +28,7 @@ export default function HistoryPage() {
         setIsLoading(true);
         const res = await residentApi.getMyWater();
         setData(res.data);
+        setError(null);
       } catch (err) {
         setError(err.response?.data?.error?.message || 'Failed to fetch usage history.');
       } finally {
@@ -33,173 +37,246 @@ export default function HistoryPage() {
     }
 
     if (assignedNodeId) fetchHistory();
-  }, [assignedNodeId]);
+  }, [assignedNodeId, reloadKey]);
 
   const history = data?.history || [];
+  const bars = history.slice(-24);
   const totalLiters = Number(data?.total_24h_liters) || 0;
-  const totalM3 = Number(data?.total_24h_m3) || (totalLiters / 1000);
+  const totalM3 = Number(data?.total_24h_m3) || totalLiters / 1000;
 
-  // Calculate Peak Consumption Hour & Averages
+  // Peak hour & averages
   const peakRecord = history.reduce((prev, curr) => {
-    return (Number(curr.total_volume_liters) > Number(prev?.total_volume_liters || 0)) ? curr : prev;
+    return Number(curr.total_volume_liters) > Number(prev?.total_volume_liters || 0) ? curr : prev;
   }, null);
+  const avgHourlyLiters = history.length > 0 ? totalLiters / history.length : 0;
+  const maxBarValue = Math.max(...history.map((h) => Number(h.total_volume_liters) || 0), 10);
 
-  const avgHourlyLiters = history.length > 0 ? (totalLiters / history.length) : 0;
-  const maxBarValue = Math.max(...history.map(h => Number(h.total_volume_liters) || 0), 10);
-
-  // Format timestamps nicely (e.g. "17:00")
   const formatHour = (ts) => {
     if (!ts) return '--:--';
     const parts = ts.split(' ');
     return parts[1] ? parts[1].slice(0, 5) : ts;
   };
 
+  const axisLabels = bars.length
+    ? [0, Math.floor((bars.length - 1) / 2), bars.length - 1].map((i) => formatHour(bars[i]?.hour_timestamp))
+    : [];
+  const selected = selectedIdx != null ? bars[selectedIdx] : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* 1. Header */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-black text-slate-900">24-Hour Consumption History</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Archival hourly summaries for meter <span className="font-mono font-bold text-slate-700">{assignedNodeId}</span>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1 min-w-0">
+          <Eyebrow>Consumption</Eyebrow>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Usage history</h1>
+          <p className="text-xs text-slate-500 font-medium">
+            Hourly totals for meter <span className="font-mono text-slate-700">{assignedNodeId || 'Unassigned'}</span>
           </p>
         </div>
-
-        <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl font-medium">
+        <div className="inline-flex items-center gap-2 text-xs text-slate-600 bg-white/80 backdrop-blur-md border border-white/90 ring-1 ring-black/[0.03] px-3.5 py-2 rounded-xl font-medium">
           <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span>Last 24 Hours</span>
+          <span>Last 24 hours</span>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="p-12 text-center text-xs text-slate-400">Loading historical data...</div>
+      {!assignedNodeId ? (
+        <Card>
+          <EmptyState
+            icon={Droplet}
+            tone="amber"
+            title="No water meter linked yet"
+            body="History appears here once BAWASA assigns a meter to your account."
+          />
+        </Card>
       ) : error ? (
-        <div className="p-4 bg-rose-50 text-rose-700 text-xs rounded-xl">{error}</div>
+        <Alert
+          tone="rose"
+          action={
+            <button onClick={() => setReloadKey((k) => k + 1)} className="inline-flex items-center gap-1 text-xs font-bold underline shrink-0">
+              <RefreshCw className="w-3 h-3" /> Retry
+            </button>
+          }
+        >
+          {error}
+        </Alert>
       ) : (
         <>
-          {/* 2. Analytical Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-semibold text-slate-400 uppercase">24h Cumulative Liters</span>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-black text-slate-900 font-mono">{totalLiters.toFixed(1)}</span>
-                <span className="text-xs font-bold text-slate-500">Liters</span>
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-semibold text-sky-600 uppercase">Billing Volume</span>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-black text-sky-900 font-mono">{totalM3.toFixed(3)}</span>
-                <span className="text-xs font-bold text-sky-700">m³</span>
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-semibold text-amber-600 uppercase">Peak Consumption Hour</span>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-xl font-black text-slate-800 font-mono">
-                  {peakRecord ? `${formatHour(peakRecord.hour_timestamp)}` : '--:--'}
-                </span>
-                <span className="text-xs text-slate-500 font-mono">
-                  ({peakRecord ? Number(peakRecord.total_volume_liters).toFixed(1) : 0} L)
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-              <span className="text-[10px] font-semibold text-emerald-600 uppercase">Hourly Average</span>
-              <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-black text-emerald-800 font-mono">{avgHourlyLiters.toFixed(1)}</span>
-                <span className="text-xs font-bold text-slate-500">L / hr</span>
-              </div>
-            </div>
+          {/* 2. Summary tiles */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatTile label="Total used" value={totalLiters.toFixed(1)} unit="L" hint="Past 24 hours" loading={isLoading} />
+            <StatTile label="Billing volume" value={totalM3.toFixed(3)} unit="m³" hint="1 m³ = 1,000 L" tone="sky" loading={isLoading} />
+            <StatTile
+              label="Busiest hour"
+              value={peakRecord ? formatHour(peakRecord.hour_timestamp) : '--:--'}
+              hint={peakRecord ? `${Number(peakRecord.total_volume_liters).toFixed(1)} L used` : 'No data yet'}
+              tone="amber"
+              loading={isLoading}
+            />
+            <StatTile label="Hourly average" value={avgHourlyLiters.toFixed(1)} unit="L/hr" tone="emerald" loading={isLoading} />
           </div>
 
-          {/* 3. Pure CSS Hourly Consumption Bar Chart */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-4 flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-sky-600" /> Hourly Consumption Profile
-            </h3>
+          {/* 3. Hourly chart */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-sky-600" /> Hourly usage
+              </h3>
+              <div className="flex items-center gap-3 text-[11px] text-slate-500">
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-sky-500" />Usage</span>
+                <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-rose-500" />Leak flagged</span>
+              </div>
+            </div>
 
-            {history.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400">No hourly compaction records available yet.</div>
+            {isLoading ? (
+              <Skeleton className="h-48 w-full" />
+            ) : bars.length === 0 ? (
+              <EmptyState
+                icon={TrendingUp}
+                tone="slate"
+                title="No hourly data yet"
+                body="Your first hourly summary appears after your meter completes a full hour of readings."
+              />
             ) : (
-              <div className="space-y-2">
-                <div className="h-44 flex items-end gap-1.5 pt-6 pb-2 border-b border-slate-100 overflow-x-auto">
-                  {history.slice(-24).map((row, idx) => {
-                    const liters = Number(row.total_volume_liters) || 0;
-                    const heightPercent = Math.max(4, Math.round((liters / maxBarValue) * 100));
+              <div>
+                {/* Readout for tapped / hovered bar (works on touch screens) */}
+                <div className="h-6 mb-1 text-xs font-mono text-slate-600">
+                  {selected ? (
+                    <>
+                      <span className="font-bold text-slate-900">{formatHour(selected.hour_timestamp)}</span>
+                      <span className="text-slate-300"> • </span>
+                      {Number(selected.total_volume_liters).toFixed(1)} L
+                      <span className="text-slate-300"> • </span>
+                      peak {Number(selected.peak_flow_rate_lpm).toFixed(2)} LPM
+                    </>
+                  ) : (
+                    <span className="text-slate-400 font-sans">Tap a bar to see that hour</span>
+                  )}
+                </div>
 
-                    return (
-                      <div key={idx} className="flex-1 min-w-[24px] flex flex-col items-center gap-1 group relative">
-                        {/* Tooltip on Hover */}
-                        <div className="absolute -top-7 bg-slate-900 text-white text-[9px] font-mono py-0.5 px-1.5 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap pointer-events-none z-10">
-                          {liters.toFixed(1)} L
-                        </div>
-
-                        {/* Bar */}
-                        <div 
-                          className="w-full bg-sky-500 hover:bg-sky-600 rounded-t transition" 
-                          style={{ height: `${heightPercent}%` }}
-                        />
+                <div className="relative">
+                  {/* Gridlines */}
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none" aria-hidden="true">
+                    {[maxBarValue, maxBarValue / 2, 0].map((v, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="w-9 text-right text-[10px] font-mono text-slate-400">{v.toFixed(0)}</span>
+                        <div className="flex-1 border-t border-dashed border-black/[0.06]" />
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+
+                  <div className="relative h-44 pl-11 flex items-end gap-1">
+                    {bars.map((row, idx) => {
+                      const liters = Number(row.total_volume_liters) || 0;
+                      const heightPercent = Math.max(3, Math.round((liters / maxBarValue) * 100));
+                      const hasLeak = Number(row.leak_flag_count) > 0;
+                      const isSel = selectedIdx === idx;
+                      const isPeak = peakRecord && row === peakRecord;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setSelectedIdx(isSel ? null : idx)}
+                          onMouseEnter={() => setSelectedIdx(idx)}
+                          aria-label={`${formatHour(row.hour_timestamp)}: ${liters.toFixed(1)} liters`}
+                          className="flex-1 min-w-0 h-full flex items-end group focus:outline-none"
+                        >
+                          <div
+                            className={`w-full rounded-t transition ${
+                              hasLeak ? 'bg-rose-500' : isSel || isPeak ? 'bg-slate-900' : 'bg-sky-500 group-hover:bg-sky-600'
+                            } ${isSel ? 'ring-2 ring-slate-900/20' : ''}`}
+                            style={{ height: `${heightPercent}%` }}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {/* X-Axis Labels */}
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 px-1">
-                  <span>{history[0] ? formatHour(history[0].hour_timestamp) : '24h ago'}</span>
-                  <span>12h ago</span>
-                  <span>{history[history.length - 1] ? formatHour(history[history.length - 1].hour_timestamp) : 'Now'}</span>
+                <div className="flex justify-between text-[10px] font-mono text-slate-400 pl-11 pt-2">
+                  {axisLabels.map((l, i) => <span key={i}>{l}</span>)}
                 </div>
+                <p className="text-[11px] text-slate-400 mt-2 pl-11">Liters per hour. Darkest bar marks your busiest hour.</p>
               </div>
             )}
-          </div>
+          </Card>
 
-          {/* 4. Tabular Hourly Summary Records */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                <Table className="w-4 h-4 text-slate-400" /> Hourly Compaction Audit Table
+          {/* 4. Detail records */}
+          <Card className="overflow-hidden">
+            <div className="p-4 border-b border-black/[0.05] flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Table className="w-4 h-4 text-slate-400" /> Hourly records
               </h3>
-              <span className="text-[10px] text-slate-400 font-mono">{history.length} records</span>
+              <span className="text-[11px] text-slate-400 font-mono">{history.length} records</span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 font-semibold uppercase text-[10px]">
-                  <tr>
-                    <th className="p-3 pl-4">Hour Timestamp</th>
-                    <th className="p-3">Volume (Liters)</th>
-                    <th className="p-3">Peak Flow Rate</th>
-                    <th className="p-3">Meter Index</th>
-                    <th className="p-3 pr-4 text-right">Alarms</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {history.map((row) => (
-                    <tr key={row.summary_id || row.hour_timestamp} className="hover:bg-slate-50/60 transition">
-                      <td className="p-3 pl-4 font-mono font-medium text-slate-900">{row.hour_timestamp}</td>
-                      <td className="p-3 font-mono font-bold text-sky-700">{Number(row.total_volume_liters).toFixed(2)} L</td>
-                      <td className="p-3 font-mono">{Number(row.peak_flow_rate_lpm).toFixed(2)} LPM</td>
-                      <td className="p-3 font-mono text-slate-500">{Number(row.cumulative_meter_reading || 0).toFixed(1)} L</td>
-                      <td className="p-3 pr-4 text-right">
-                        {Number(row.leak_flag_count) > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded font-bold">
-                            <AlertTriangle className="w-3 h-3" /> {row.leak_flag_count}
+            {isLoading ? (
+              <div className="p-4 space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : history.length === 0 ? (
+              <p className="p-8 text-center text-xs text-slate-400">No records yet.</p>
+            ) : (
+              <>
+                {/* Mobile: compact list */}
+                <ul className="md:hidden divide-y divide-black/[0.05]">
+                  {[...history].reverse().map((row) => (
+                    <li key={row.summary_id || row.hour_timestamp} className="p-4 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-mono font-semibold text-slate-900">{row.hour_timestamp}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5 font-mono">
+                          peak {Number(row.peak_flow_rate_lpm).toFixed(2)} LPM
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-mono font-bold text-sky-700">{Number(row.total_volume_liters).toFixed(2)} L</div>
+                        {Number(row.leak_flag_count) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full font-bold mt-1">
+                            <AlertTriangle className="w-3 h-3" /> {row.leak_flag_count} flagged
                           </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-400">0</span>
                         )}
-                      </td>
-                    </tr>
+                      </div>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </ul>
+
+                {/* Desktop: table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-50/80 border-b border-black/[0.05]">
+                      <tr className="text-slate-400">
+                        {['Hour', 'Volume', 'Peak flow', 'Meter reading', 'Alerts'].map((h, i) => (
+                          <th key={h} className={`p-3 text-[11px] font-bold uppercase tracking-wider ${i === 0 ? 'pl-4' : ''} ${i === 4 ? 'pr-4 text-right' : ''}`}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/[0.05] text-slate-700">
+                      {history.map((row) => (
+                        <tr key={row.summary_id || row.hour_timestamp} className="hover:bg-slate-50/60 transition">
+                          <td className="p-3 pl-4 font-mono font-medium text-slate-900">{row.hour_timestamp}</td>
+                          <td className="p-3 font-mono font-bold text-sky-700">{Number(row.total_volume_liters).toFixed(2)} L</td>
+                          <td className="p-3 font-mono">{Number(row.peak_flow_rate_lpm).toFixed(2)} LPM</td>
+                          <td className="p-3 font-mono text-slate-500">{Number(row.cumulative_meter_reading || 0).toFixed(1)} L</td>
+                          <td className="p-3 pr-4 text-right">
+                            {Number(row.leak_flag_count) > 0 ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full font-bold">
+                                <AlertTriangle className="w-3 h-3" /> {row.leak_flag_count}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-400">None</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </Card>
         </>
       )}
     </div>

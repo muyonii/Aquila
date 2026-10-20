@@ -17,6 +17,11 @@ readonly class ConsumptionVolume
         $this->liters = round($liters, 2);
     }
 
+    public static function fromCubicMeters(float $m3): self
+    {
+        return new self($m3 * 1000.0);
+    }
+
     public function add(self $other): self
     {
         return new self($this->liters + $other->liters);
@@ -24,14 +29,13 @@ readonly class ConsumptionVolume
 
     public function subtract(self $other): self
     {
-        // Protects against reverse-meter tampering or negative deltas
+        // Reverse-meter protection: Clamps to 0.00
         $result = max(0.0, $this->liters - $other->liters);
         return new self($result);
     }
 
     public function toCubicMeters(): float
     {
-        // Standard water utility conversion: 1,000 Liters = 1.000 Cubic Meter
         return round($this->liters / 1000.0, 3);
     }
 

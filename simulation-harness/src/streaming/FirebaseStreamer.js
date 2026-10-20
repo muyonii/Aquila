@@ -2,60 +2,88 @@ import { SETTINGS } from '../../config/settings.js';
 
 /**
  * FirebaseStreamer
- * Publishes 7-field telemetry payloads (DR-01) and node metadata to Firebase RTDB over HTTP.
+ *
+ * Atomically publishes real-time node telemetry to Firebase RTDB (/nodes.json).
+ * Honors TelemetryContract.js (6 required fields, no battery) and
+ * implements Chaos Engineering packet-loss injection.
  */
 export class FirebaseStreamer {
-    constructor(dbUrl = SETTINGS.FIREBASE_DB_URL) {
-        this.dbUrl = dbUrl.replace(/\/+$/, '');
-        this.timeoutMs = SETTINGS.NETWORK_TIMEOUT_MS || 5000;
+    constructor(databaseUrl = SETTINGS.FIREBASE_DB_URL) {
+        this.dbUrl = databaseUrl.replace(/\/+$/, '');
+        this.timeoutMs = SETTINGS.NETWORK_TIMEOUT_MS || 4000;
     }
 
-    async initNodeMetadata(nodeState) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
+    /**
+     * Publishes a tick state for all nodes to Firebase in 1 atomic HTTP PATCH request
+     *
+     * @param {Object} tickResults - Map of nodeId -> node state from ScenarioEngine
+     * @param {Object} scenarioEngine - Reference to ScenarioEngine for chaos checking
+     */
+    async streamTick(tickResults, scenarioEngine) {
+        const now = Math.floor(Date.now() / 1000);
+        const multiLocationPatch = {};
+        let sentCount = 0;
+        let droppedCount = 0;
 
-        try {
-            await fetch(`${this.dbUrl}/nodes/${nodeState.node_id}/status.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(nodeState.status),
-                signal: controller.signal
-            });
+        for (const [nodeId, state] of Object.entries(tickResults)) {
+            // Chaos Engineering Check: Simulate random packet loss if Chaos Mode is ON
+            if (scenarioEngine && scenarioEngine.shouldDropPacket()) {
+                droppedCount++;
+                continue; // Skip this node's telemetry for this tick
+            }
 
-            await fetch(`${this.dbUrl}/nodes/${nodeState.node_id}/metadata.json`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    household_label: nodeState.household_label,
-                    location_name: nodeState.location_name,
-                    purok_cluster: nodeState.purok_cluster,
-                    is_physical: nodeState.is_physical
-                }),
-                signal: controller.signal
-            });
-        } catch (error) {
-            // Ignore transient network glitches during metadata init
-        } finally {
-            clearTimeout(timeoutId);
+            // Do not publish virtual telemetry for physical hardware if real ESP32 is actively streaming
+            if (state.is_physical && state.is_hardware_active) {
+                continue;
+            }
+
+            // 6-Field Telemetry Payload (Strictly matching TelemetryContract.js)
+            multiLocationPatch[`${nodeId}/telemetry`] = {
+                node_id: nodeId,
+                packet_sequence: state.packet_sequence,
+                timestamp: now,
+                flow_rate_lpm: state.current_flow_lpm,
+                cumulative_liters: state.cumulative_liters,
+                is_simulated: !state.is_physical
+            };
+
+            sentCount++;
         }
-    }
 
-    async streamTelemetry(nodeId, telemetryPayload) {
+        if (Object.keys(multiLocationPatch).length === 0) {
+            return { sentCount: 0, droppedCount };
+        }
+
+        // Execute atomic multi-location PATCH to /nodes.json
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
         try {
-            const url = `${this.dbUrl}/nodes/${nodeId}/telemetry.json`;
-            const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(telemetryPayload),
+            const url = `${this.dbUrl}/nodes.json`;
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(multiLocationPatch),
                 signal: controller.signal
             });
 
-            return res.ok;
+            if (!response.ok) {
+                console.warn(`⚠️ [FirebaseStreamer] HTTP ${response.status} returned by Firebase RTDB`);
+                return { sentCount: 0, droppedCount, error: response.status };
+            }
+
+            return { sentCount, droppedCount, success: true };
+
         } catch (error) {
-            return false;
+            if (error.name === 'AbortError') {
+                console.warn(`⚠️ [FirebaseStreamer] Stream request timed out after ${this.timeoutMs}ms`);
+            } else {
+                console.warn(`⚠️ [FirebaseStreamer] Stream failed: ${error.message}`);
+            }
+            return { sentCount: 0, droppedCount, error: error.message };
         } finally {
             clearTimeout(timeoutId);
         }

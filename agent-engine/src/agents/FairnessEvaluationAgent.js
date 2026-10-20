@@ -4,9 +4,15 @@ import { SETTINGS } from '../../config/settings.js';
 /**
  * FairnessEvaluationAgent (CMP-FEA-01)
  *
- * Evaluates water distribution equity across households using the
- * Rawlsian Relative Deprivation Index (RDI = Delta_i / Mean_community).
- * Implements Rule BR-04 (0.70 Cutoff) and Rule BR-05 (Municipal Shortage Guard).
+ * Evaluates water distribution equity across households using a Hybrid
+ * Profile-Aware Rawlsian Index:
+ *   1. Macro-Level: Rawlsian Relative Deprivation Index (RDI = Delta_i / Mean_community)
+ *   2. Micro-Level: Personal Baseline Deficit (Compares against household's own profile)
+ *
+ * Refinements Implemented:
+ *   - Configurable deficit threshold (SETTINGS.PERSONAL_DEFICIT_THRESHOLD)
+ *   - Cold-boot baseline hydration from blackboard state
+ *   - Meter rollover and hardware replacement guard
  */
 export class FairnessEvaluationAgent extends BaseAgent {
     constructor(blackboard, windowSeconds = null) {
@@ -14,10 +20,68 @@ export class FairnessEvaluationAgent extends BaseAgent {
         this.volumeHistory = {}; // Tracks { [nodeId]: [{ timestamp, liters }] }
         this.windowSeconds = windowSeconds || SETTINGS.FAIRNESS_WINDOW_SECONDS || 86400; // Default 24h
         this.minWarmupSeconds = 30; // Minimum 30s observation before firing alerts
+        this.isHydrated = false;    // Tracks if cold-boot state has been restored
+    }
+
+    /**
+     * Cold-Boot Hydration: Restores node baseline history from the Firebase Hot Store
+     * so restarting the server does not cause a 30-second blindspot or calculation volatility.
+     */
+    async hydrateFromBlackboard(nodesData) {
+        try {
+            if (!this.blackboard || typeof this.blackboard.fetchHypotheses !== 'function') {
+                return;
+            }
+
+            const priorHypotheses = await this.blackboard.fetchHypotheses('fairness');
+            if (!priorHypotheses || Object.keys(priorHypotheses).length === 0) {
+                return;
+            }
+
+            const now = Math.floor(Date.now() / 1000);
+            const staleTimeout = SETTINGS.STALE_TELEMETRY_TIMEOUT_SECONDS || 45;
+
+            for (const [nodeId, hyp] of Object.entries(priorHypotheses)) {
+                if (!hyp || typeof hyp.delta_liters !== 'number' || typeof hyp.elapsed_seconds !== 'number') {
+                    continue;
+                }
+
+                // Only restore if the hypothesis is fresh
+                const age = now - (hyp.timestamp || 0);
+                if (age > staleTimeout) {
+                    continue;
+                }
+
+                const currentLiters = nodesData[nodeId]?.telemetry?.cumulative_liters;
+                if (typeof currentLiters === 'number' && hyp.elapsed_seconds > 0) {
+                    const estimatedBaselineTime = Math.max(0, (hyp.timestamp || now) - hyp.elapsed_seconds);
+                    const estimatedBaselineLiters = Math.max(0.0, currentLiters - hyp.delta_liters);
+
+                    this.volumeHistory[nodeId] = [
+                        { timestamp: estimatedBaselineTime, liters: estimatedBaselineLiters }
+                    ];
+                }
+            }
+
+            const restoredCount = Object.keys(this.volumeHistory).length;
+            if (restoredCount > 0) {
+                console.log(`✔ [FEA] Cold-boot hydration: Restored baseline history for ${restoredCount} nodes.`);
+            }
+        } catch (error) {
+            console.warn(`⚠️ [FEA] Cold-boot hydration skipped: ${error.message}`);
+        }
     }
 
     async sense() {
-        return await this.blackboard.fetchAllNodesTelemetry();
+        const nodesData = await this.blackboard.fetchAllNodesTelemetry();
+
+        // Perform cold-boot hydration on initial run if history is empty
+        if (!this.isHydrated && Object.keys(this.volumeHistory).length === 0) {
+            await this.hydrateFromBlackboard(nodesData);
+            this.isHydrated = true;
+        }
+
+        return nodesData;
     }
 
     async deliberate(nodesData) {
@@ -32,7 +96,6 @@ export class FairnessEvaluationAgent extends BaseAgent {
             const status = (data.status || 'ACTIVE').toUpperCase();
 
             // 1. Alarm Suppression: Purge historical buffer and ignore non-active nodes
-            // Matches test specification (decisions array contains active nodes only)
             if (status !== 'ACTIVE') {
                 delete this.volumeHistory[nodeId];
                 continue;
@@ -46,6 +109,7 @@ export class FairnessEvaluationAgent extends BaseAgent {
             // 2. Stale Telemetry Watchdog (> 45s without fresh packet)
             const packetAge = now - (telemetry.timestamp || 0);
             if (packetAge > staleTimeout) {
+                delete this.volumeHistory[nodeId];
                 continue;
             }
 
@@ -56,9 +120,15 @@ export class FairnessEvaluationAgent extends BaseAgent {
             }
 
             const history = this.volumeHistory[nodeId];
-            history.push({ timestamp: now, liters: currentLiters });
 
-            // 3. Prune history older than the evaluation window (keep at least 1 baseline entry)
+            // 3. Meter Rollover / Replacement Guard
+            if (history.length > 0 && currentLiters < history[0].liters) {
+                this.volumeHistory[nodeId] = [{ timestamp: now, liters: currentLiters }];
+            } else {
+                history.push({ timestamp: now, liters: currentLiters });
+            }
+
+            // Prune history older than the evaluation window
             while (history.length > 1 && (now - history[0].timestamp) > this.windowSeconds) {
                 history.shift();
             }
@@ -91,7 +161,6 @@ export class FairnessEvaluationAgent extends BaseAgent {
         const isWarmingUp = avgElapsedSeconds < this.minWarmupSeconds;
 
         // 6. Time-Normalized 24-Hour Municipal Shortage Guard (Rule BR-05)
-        // Project observed mean to equivalent 24-hour (86,400s) consumption rate
         const timeFactor = this.windowSeconds / Math.max(avgElapsedSeconds, 1);
         const projectedDailyLiters = communityMeanDelta * timeFactor;
         const shortageOverride = !isWarmingUp && 
@@ -99,11 +168,32 @@ export class FairnessEvaluationAgent extends BaseAgent {
             (totalCommunityDelta > 0);
 
         const decisions = [];
+        // Refinement 1: Use configurable deficit cutoff
+        const personalDeficitCutoff = SETTINGS.PERSONAL_DEFICIT_THRESHOLD || 0.60;
 
+        // 7. Profile-Aware Deprivation Evaluation
         for (const [nodeId, delta] of Object.entries(nodeDeltas)) {
-            // Rawlsian Relative Deprivation Index (RDI)
+            // A. Macro Community Metric: Rawlsian Relative Deprivation Index (RDI)
             const rdi = communityMeanDelta > 0 ? delta / (communityMeanDelta + 0.0001) : 1.0;
-            const isDisadvantaged = !isWarmingUp && !shortageOverride && (rdi < SETTINGS.RDI_DISADVANTAGE_CUTOFF);
+            const communityDeficit = rdi < SETTINGS.RDI_DISADVANTAGE_CUTOFF;
+
+            // B. Micro Household Metric: Personal Baseline Deviation Guard
+            const nodeProfile = nodesData[nodeId]?.profile || {};
+            const hasPersonalProfile = typeof nodeProfile.mean_daily_volume_liters === 'number' && nodeProfile.mean_daily_volume_liters > 0;
+            
+            let personalDeficit = true;
+            if (hasPersonalProfile) {
+                const expectedVolumeThisWindow = (nodeProfile.mean_daily_volume_liters / timeFactor);
+                // Flag personal deficit only if volume is below configurable threshold (60%) of typical intake
+                personalDeficit = delta < (expectedVolumeThisWindow * personalDeficitCutoff);
+            }
+
+            // Household is genuinely disadvantaged if:
+            // 1. System is not warming up AND
+            // 2. No municipal shortage override is active AND
+            // 3. Community RDI is below 0.70 cutoff AND
+            // 4. Usage dropped below their personal baseline (or unprofiled fallback)
+            const isDisadvantaged = !isWarmingUp && !shortageOverride && communityDeficit && personalDeficit;
 
             decisions.push({
                 node_id: nodeId,
@@ -114,6 +204,7 @@ export class FairnessEvaluationAgent extends BaseAgent {
                 is_disadvantaged: isDisadvantaged,
                 override_active: shortageOverride,
                 is_warming_up: isWarmingUp,
+                personal_baseline_verified: hasPersonalProfile,
                 elapsed_seconds: Math.round(nodeElapsed[nodeId] || 0),
                 timestamp: now
             });

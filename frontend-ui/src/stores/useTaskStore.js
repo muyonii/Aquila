@@ -2,21 +2,13 @@ import { create } from 'zustand';
 import { taskApi } from '../api/task_api';
 
 export const useTaskStore = create((set, get) => ({
-  // 1. State
   tasks: [],
   activeTask: null,
   isLoading: false,
   error: null,
   isOnDuty: JSON.parse(localStorage.getItem('aquila_tech_on_duty') ?? 'true'),
-  
-  // Verification states map: { [taskId]: { status, remainingSeconds, observedLpm } }
   verificationStates: {},
 
-  // 2. Actions
-  
-  /**
-   * Fetch active work orders for logged-in technician
-   */
   fetchMyTasks: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -25,15 +17,12 @@ export const useTaskStore = create((set, get) => ({
       set({ tasks: taskList, isLoading: false });
       return taskList;
     } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Failed to load assigned tasks.';
+      const msg = err.response?.data?.error?.message || 'Failed to load assigned work orders.';
       set({ error: msg, isLoading: false });
       throw new Error(msg);
     }
   },
 
-  /**
-   * Fetch a single task by ID
-   */
   fetchTaskDetails: async (taskId) => {
     set({ isLoading: true, error: null });
     try {
@@ -42,50 +31,80 @@ export const useTaskStore = create((set, get) => ({
       set({ activeTask: task, isLoading: false });
       return task;
     } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Failed to load task details.';
+      const msg = err.response?.data?.error?.message || 'Failed to load work order details.';
       set({ error: msg, isLoading: false });
       throw new Error(msg);
     }
   },
 
-  /**
-   * Submit technician repair notes
-   */
+  claimTask: async (taskId) => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await taskApi.claimTask(taskId);
+      await get().fetchMyTasks();
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error?.message || 'Failed to claim work order.';
+      set({ error: msg, isLoading: false });
+      throw new Error(msg);
+    }
+  },
+
+  arriveOnSite: async (taskId) => {
+    try {
+      const res = await taskApi.arriveOnSite(taskId);
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.incident_id === taskId ? { ...t, node_status: 'MAINTENANCE' } : t
+        ),
+        activeTask:
+          state.activeTask?.incident_id === taskId
+            ? { ...state.activeTask, node_status: 'MAINTENANCE' }
+            : state.activeTask
+      }));
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.error?.message || 'Failed to check in on-site.';
+      throw new Error(msg);
+    }
+  },
+
   submitRepair: async (taskId, repairNotes) => {
     set({ isLoading: true, error: null });
     try {
       const res = await taskApi.submitRepair(taskId, repairNotes);
-      
-      // Update local state to PENDING_VERIFICATION
+
       set((state) => ({
-        tasks: state.tasks.map((t) => 
-          t.incident_id === taskId 
-            ? { ...t, status: 'PENDING_VERIFICATION' } 
+        tasks: state.tasks.map((t) =>
+          t.incident_id === taskId
+            ? { ...t, status: 'PENDING_VERIFICATION', node_status: 'ACTIVE' }
             : t
         ),
-        activeTask: state.activeTask?.incident_id === taskId 
-          ? { ...state.activeTask, status: 'PENDING_VERIFICATION' } 
-          : state.activeTask,
+        activeTask:
+          state.activeTask?.incident_id === taskId
+            ? {
+                ...state.activeTask,
+                status: 'PENDING_VERIFICATION',
+                node_status: 'ACTIVE',
+                pending_verification_since: res.data?.pending_verification_since
+              }
+            : state.activeTask,
         isLoading: false
       }));
 
       return res.data;
     } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Failed to submit repair.';
+      const msg = err.response?.data?.error?.message || 'Failed to submit repair notes.';
       set({ error: msg, isLoading: false });
       throw new Error(msg);
     }
   },
 
-  /**
-   * Evaluate quiescent flow during 15-minute verification (BR-07)
-   */
   checkVerification: async (taskId, evalData = {}) => {
     try {
       const res = await taskApi.verifyFlow(taskId, evalData);
       const { status, observed_lpm, remaining_seconds } = res.data;
 
-      // Update timer state
       set((state) => ({
         verificationStates: {
           ...state.verificationStates,
@@ -97,15 +116,15 @@ export const useTaskStore = create((set, get) => ({
         }
       }));
 
-      // If the ticket reached a terminal state (CLOSED_VERIFIED or REPAIR_FAILED), update task lists
       if (status === 'CLOSED_VERIFIED' || status === 'REPAIR_FAILED') {
         set((state) => ({
-          tasks: state.tasks.map((t) => 
+          tasks: state.tasks.map((t) =>
             t.incident_id === taskId ? { ...t, status } : t
           ),
-          activeTask: state.activeTask?.incident_id === taskId 
-            ? { ...state.activeTask, status } 
-            : state.activeTask
+          activeTask:
+            state.activeTask?.incident_id === taskId
+              ? { ...state.activeTask, status }
+              : state.activeTask
         }));
       }
 
@@ -116,9 +135,6 @@ export const useTaskStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Toggle on/off duty status
-   */
   toggleDutyStatus: () => {
     set((state) => {
       const nextStatus = !state.isOnDuty;
@@ -127,16 +143,12 @@ export const useTaskStore = create((set, get) => ({
     });
   },
 
-  /**
-   * Reset store on logout
-   */
-  resetTaskStore: () => {
+  resetTaskStore: () =>
     set({
       tasks: [],
       activeTask: null,
       isLoading: false,
       error: null,
       verificationStates: {}
-    });
-  }
+    })
 }));

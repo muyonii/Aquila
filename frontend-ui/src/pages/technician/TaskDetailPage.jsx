@@ -1,23 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { ref, set } from 'firebase/database';
+import { rtdb } from '../../firebase/firebase_config';
 import { useTaskStore } from '../../stores/useTaskStore';
 import { useTelemetryStore } from '../../stores/useTelemetryStore';
 import { rtdbSubscription } from '../../firebase/rtdb_subscription';
 
 import ActionCard from '../../components/common/ActionCard';
+import StatusBadge from '../../components/common/StatusBadge';
 import VerificationTimer from '../../components/common/VerificationTimer';
-import SvgNeedleGauge from '../../components/gauges/SvgNeedleGauge';
+import BatteryIndicator from '../../components/gauges/BatteryIndicator';
+import {
+  Alert,
+  Card,
+  IconTile,
+  Label,
+  Skeleton,
+  btnAccent,
+  btnPrimary,
+  btnSecondary,
+  inputClass
+} from '../../components/portal/ui';
 
-import { 
-  ArrowLeft, 
-  MapPin, 
-  Navigation, 
-  CheckCircle2, 
-  Wrench, 
-  AlertTriangle, 
-  CheckSquare, 
-  Droplets 
+import {
+  ArrowLeft,
+  Navigation,
+  CheckCircle2,
+  Wrench,
+  AlertTriangle,
+  Droplets,
+  Check,
+  ShieldCheck,
+  MapPin,
+  History,
+  Lock
 } from 'lucide-react';
+
+const SAFETY_ISOLATION_CHECKS = [
+  {
+    id: 'verify_meter',
+    label: 'Located meter box & verified physical node ID tag'
+  },
+  {
+    id: 'close_valve',
+    label: 'Closed local upstream isolation gate valve to stop water loss (INV-01)'
+  },
+  {
+    id: 'expose_pipe',
+    label: 'Depressurized line & exposed damaged pipe coupling / fitting'
+  }
+];
 
 const COMMON_REPAIR_ACTIONS = [
   'Replaced 3/4" PVC elbow coupling',
@@ -27,21 +59,56 @@ const COMMON_REPAIR_ACTIONS = [
   'Purged sediment blockage from meter chamber'
 ];
 
+const WORKFLOW_STEPS = [
+  '1. En Route',
+  '2. On-Site & Isolated',
+  '3. Repair Logged',
+  '4. 15m Verification',
+  '5. Verified Closed'
+];
+
 export default function TaskDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
-  const { activeTask, fetchTaskDetails, submitRepair, isLoading, error } = useTaskStore();
+  const {
+    activeTask,
+    fetchTaskDetails,
+    arriveOnSite,
+    submitRepair,
+    isLoading,
+    error
+  } = useTaskStore();
   const { getNode } = useTelemetryStore();
 
+  // Stage 2 & 3 Local Workbench State
+  const [arriving, setArriving] = useState(false);
+  const [checkedSafety, setCheckedSafety] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`aquila_safety_${id}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [repairNotes, setRepairNotes] = useState('');
   const [selectedActions, setSelectedActions] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+  const [sealingPipe, setSealingPipe] = useState(false);
 
-  // 1. Fetch task details & subscribe to target node telemetry
+  // 1-second clock to evaluate 45s telemetry staleness
+  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
-    fetchTaskDetails(id);
+    const timer = setInterval(
+      () => setNowSec(Math.floor(Date.now() / 1000)),
+      1000
+    );
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    fetchTaskDetails(id).catch(() => {});
   }, [id, fetchTaskDetails]);
 
   useEffect(() => {
@@ -51,24 +118,115 @@ export default function TaskDetailPage() {
   }, [activeTask?.node_id]);
 
   const nodeState = getNode(activeTask?.node_id);
-  const currentFlow = Number(nodeState?.telemetry?.flow_rate_lpm) || 0.0;
+  const rawTs = Number(nodeState?.telemetry?.timestamp || 0);
+  const ts = rawTs > 1e11 ? Math.floor(rawTs / 1000) : rawTs;
+  const isTelemetryFresh = ts > 0 && Math.max(0, nowSec - ts) <= 45;
+  const currentFlow = isTelemetryFresh
+    ? Number(nodeState?.telemetry?.flow_rate_lpm) || 0.0
+    : 0.0;
+  const batteryVolts = Number(nodeState?.telemetry?.battery_voltage) || 4.12;
 
-  // Toggle quick-fill repair actions
+  const isPendingVerification = activeTask?.status === 'PENDING_VERIFICATION';
+  const isClosedVerified = activeTask?.status === 'CLOSED_VERIFIED';
+  const isFailed = activeTask?.status === 'REPAIR_FAILED';
+  const isOnSite =
+    activeTask?.node_status === 'MAINTENANCE' ||
+    nodeState?.status === 'MAINTENANCE' ||
+    isFailed ||
+    checkedSafety.length > 0;
+  const allSafetyChecked =
+    checkedSafety.length === SAFETY_ISOLATION_CHECKS.length;
+
+  // Determine current 5-stage progress index (1 to 5)
+  const currentStageIndex = isClosedVerified
+    ? 5
+    : isPendingVerification
+    ? 4
+    : allSafetyChecked
+    ? 3
+    : isOnSite
+    ? 2
+    : 1;
+
+  // Stage 1 -> Stage 2: Arrive On-Site & Switch Node to MAINTENANCE
+  const handleArriveOnSite = async () => {
+    setArriving(true);
+    try {
+      await arriveOnSite(id);
+      await fetchTaskDetails(id);
+    } catch (err) {
+      alert(err.message || 'Failed to check in on-site.');
+    } finally {
+      setArriving(false);
+    }
+  };
+
+  // Toggle Stage 2 Safety Isolation Checkboxes
+  const toggleSafetyCheck = (checkId) => {
+    const exists = checkedSafety.includes(checkId);
+    const next = exists
+      ? checkedSafety.filter((c) => c !== checkId)
+      : [...checkedSafety, checkId];
+    setCheckedSafety(next);
+    localStorage.setItem(`aquila_safety_${id}`, JSON.stringify(next));
+  };
+
+  // Simulate Physical Pipe Clamping (Sets flow to 0.02 LPM in Firebase for 15-min Verification)
+  const handleSimulatePipeSeal = async () => {
+    if (!activeTask?.node_id) return;
+    setSealingPipe(true);
+    const now = Math.floor(Date.now() / 1000);
+    const nodeId = activeTask.node_id;
+    try {
+      await Promise.all([
+        set(ref(rtdb, `nodes/${nodeId}/telemetry`), {
+          node_id: nodeId,
+          packet_sequence: Date.now(),
+          timestamp: now,
+          flow_rate_lpm: 0.02,
+          cumulative_liters: Number(
+            nodeState?.telemetry?.cumulative_liters || 1540.5
+          ),
+          battery_voltage: 4.12,
+          is_simulated: true
+        }),
+        set(ref(rtdb, `blackboard/hypotheses/leak/${nodeId}`), {
+          node_id: nodeId,
+          classification: 'NORMAL',
+          academic_classification: 'NORMAL_CONSUMPTION',
+          academic_term: 'Sub-Threshold Quiescent Flow',
+          display_name: 'Normal Usage',
+          leak_probability: 0.05,
+          flow_rate_lpm: 0.02,
+          timestamp: now
+        })
+      ]);
+      setNowSec(now);
+    } catch (err) {
+      console.warn('[TaskDetail] Failed to simulate pipe seal:', err.message);
+    } finally {
+      setSealingPipe(false);
+    }
+  };
+
   const toggleAction = (actionText) => {
     const exists = selectedActions.includes(actionText);
-    const updated = exists 
-      ? selectedActions.filter((a) => a !== actionText) 
+    const updated = exists
+      ? selectedActions.filter((a) => a !== actionText)
       : [...selectedActions, actionText];
-
     setSelectedActions(updated);
     setRepairNotes(updated.join('. ') + (updated.length ? '.' : ''));
   };
 
-  // Handle Repair Submission
   const handleSubmitRepair = async (e) => {
     e.preventDefault();
     if (!repairNotes.trim()) {
-      setSubmitError('Please enter notes detailing the repairs performed.');
+      setSubmitError('Please describe the repair you performed.');
+      return;
+    }
+    if (!confirming) {
+      setSubmitError(null);
+      setConfirming(true);
       return;
     }
 
@@ -76,225 +234,576 @@ export default function TaskDetailPage() {
     setSubmitError(null);
     try {
       await submitRepair(id, repairNotes);
-      fetchTaskDetails(id); // Reload updated PENDING_VERIFICATION state
+      localStorage.removeItem(`aquila_safety_${id}`);
+      setConfirming(false);
+      await fetchTaskDetails(id);
     } catch (err) {
       setSubmitError(err.message || 'Failed to submit repair.');
+      setConfirming(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   if (isLoading && !activeTask) {
-    return <div className="p-12 text-center text-xs text-slate-400">Loading task details...</div>;
-  }
-
-  if (error || !activeTask) {
     return (
-      <div className="p-6 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-3">
-        <AlertTriangle className="w-8 h-8 text-rose-600 mx-auto" />
-        <h3 className="text-sm font-bold text-rose-900">{error || 'Task not found'}</h3>
-        <Link to="/tasks" className="inline-block text-xs font-bold text-sky-600 underline">
-          Return to Queue
-        </Link>
+      <div className="space-y-4 max-w-2xl mx-auto">
+        <Skeleton className="h-10 w-28" />
+        <Skeleton className="h-28 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
     );
   }
 
-  const isPendingVerification = activeTask.status === 'PENDING_VERIFICATION';
-  const isClosedVerified = activeTask.status === 'CLOSED_VERIFIED';
-  const isFailed = activeTask.status === 'REPAIR_FAILED';
+  if (error || !activeTask) {
+    return (
+      <Card className="p-8 text-center max-w-md mx-auto space-y-3">
+        <IconTile
+          icon={AlertTriangle}
+          tone="rose"
+          className="w-12 h-12 rounded-2xl mx-auto"
+        />
+        <h3 className="text-sm font-bold text-slate-900">
+          {error || 'Work order not found'}
+        </h3>
+        <Link to="/tasks" className={`${btnSecondary} inline-flex`}>
+          Back to queue
+        </Link>
+      </Card>
+    );
+  }
 
-  const mapsUrl = activeTask.latitude && activeTask.longitude 
-    ? `https://www.google.com/maps/dir/?api=1&destination=${activeTask.latitude},${activeTask.longitude}`
-    : null;
+  const mapsUrl =
+    activeTask.latitude && activeTask.longitude
+      ? `https://www.google.com/maps/dir/?api=1&destination=${activeTask.latitude},${activeTask.longitude}`
+      : null;
+
+  const flowTone = !isTelemetryFresh
+    ? {
+        text: 'text-slate-400',
+        chip: 'bg-slate-100 text-slate-600 border-slate-200',
+        label: 'Sensor Offline (>45s)'
+      }
+    : currentFlow <= 0.05
+    ? {
+        text: 'text-emerald-600',
+        chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        label: 'Pipe is still (Quiescent)'
+      }
+    : currentFlow < 1.0
+    ? {
+        text: 'text-amber-600',
+        chip: 'bg-amber-50 text-amber-800 border-amber-200',
+        label: 'Water moving'
+      }
+    : {
+        text: 'text-rose-600',
+        chip: 'bg-rose-50 text-rose-700 border-rose-200',
+        label: 'High leak flow'
+      };
+
+  const statusHistory = activeTask.status_history || [];
 
   return (
-    <div className="space-y-5 max-w-2xl mx-auto pb-6">
-      {/* 1. Header Navigation Bar */}
+    <div className="space-y-4 max-w-2xl mx-auto font-sans select-none">
+      {/* 1. Top Navigation & Status Badges */}
       <div className="flex items-center justify-between">
-        <Link 
-          to="/tasks" 
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
+        <Link to="/tasks" className={`${btnSecondary} !min-h-[40px] px-3.5`}>
+          <ArrowLeft className="w-4 h-4" />
           <span>Queue</span>
         </Link>
-
-        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
-          isClosedVerified 
-            ? 'bg-emerald-100 text-emerald-800' 
-            : isPendingVerification 
-            ? 'bg-sky-100 text-sky-800 border border-sky-200' 
-            : isFailed
-            ? 'bg-rose-100 text-rose-800 border border-rose-200'
-            : 'bg-slate-100 text-slate-700'
-        }`}>
-          {activeTask.status.replace('_', ' ')}
-        </span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <StatusBadge status={activeTask.severity_level} />
+          <StatusBadge status={activeTask.status} />
+          {isOnSite && !isPendingVerification && !isClosedVerified && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+              MAINTENANCE MODE
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* 2. Household Location Card */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider bg-sky-50 px-2 py-0.5 rounded-md">
-            {activeTask.purok_cluster || 'Purok 2'} Cluster
-          </span>
-          <h2 className="text-base font-black text-slate-900 mt-1">
-            {activeTask.household_label || activeTask.node_id}
-          </h2>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-mono mt-0.5">
-            <span>{activeTask.node_id}</span>
-            <span>•</span>
-            <span>{activeTask.is_physical ? 'Physical ESP32' : 'Synthetic Node'}</span>
+      {/* 2. Target Meter & Location Card */}
+      <Card className="p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-mono font-bold tracking-widest text-sky-700 bg-sky-50 border border-sky-100 px-2 py-0.5 rounded-md uppercase">
+                {activeTask.purok_cluster || 'Purok 2'} Cluster
+              </span>
+              <span className="text-[10px] font-mono font-bold text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
+                {activeTask.node_id}
+              </span>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 pt-1">
+              {activeTask.household_label || activeTask.node_id}
+            </h1>
+            <p className="text-xs text-slate-500">
+              {activeTask.location_name || 'Purok 2 Distribution Line'}{' '}
+              <span className="text-slate-300">•</span>{' '}
+              {activeTask.is_physical ? 'Physical ESP32 Rig' : 'Digital Twin Node'}
+            </p>
           </div>
+          <BatteryIndicator voltage={batteryVolts} />
         </div>
 
-        {mapsUrl && (
-          <a
-            href={mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm"
+        <div className="grid grid-cols-2 gap-2.5">
+          <Link
+            to={`/map?focus=${activeTask.node_id}`}
+            className={`${btnSecondary} w-full`}
           >
-            <Navigation className="w-3.5 h-3.5 text-sky-400" />
-            <span>Open Maps</span>
-          </a>
-        )}
-      </div>
+            <MapPin className="w-4 h-4 text-[#0284c7]" />
+            <span>Trace Pipe on Map</span>
+          </Link>
+          {mapsUrl && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${btnPrimary} w-full`}
+            >
+              <Navigation className="w-4 h-4 text-sky-400" />
+              <span>Google Maps GPS</span>
+            </a>
+          )}
+        </div>
+      </Card>
 
-      {/* 3. Action Card Directive (INV-01) */}
-      <ActionCard 
-        title={activeTask.action_card_title || activeTask.incident_type}
+      {/* 3. 5-Stage Progress Stepper */}
+      <Card className="px-4 py-4">
+        <ol className="grid grid-cols-5 gap-1" aria-label="Work order progress">
+          {WORKFLOW_STEPS.map((label, i) => {
+            const n = i + 1;
+            const done = currentStageIndex > n || (isClosedVerified && n === 5);
+            const current = currentStageIndex === n;
+            return (
+              <li
+                key={label}
+                className="flex flex-col items-center text-center gap-1.5"
+              >
+                <div className="flex items-center w-full">
+                  <span
+                    className={`flex-1 h-0.5 ${
+                      i === 0
+                        ? 'opacity-0'
+                        : currentStageIndex >= n
+                        ? 'bg-slate-900'
+                        : 'bg-slate-200'
+                    }`}
+                  />
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                      done
+                        ? 'bg-slate-900 text-white'
+                        : current
+                        ? `bg-white text-slate-900 border-2 ${
+                            isFailed ? 'border-rose-500' : 'border-slate-900'
+                          } ring-4 ${
+                            isFailed ? 'ring-rose-100' : 'ring-sky-100'
+                          }`
+                        : 'bg-white text-slate-400 border-2 border-slate-200'
+                    }`}
+                  >
+                    {done ? <Check className="w-3 h-3" /> : n}
+                  </span>
+                  <span
+                    className={`flex-1 h-0.5 ${
+                      i === WORKFLOW_STEPS.length - 1
+                        ? 'opacity-0'
+                        : currentStageIndex > n
+                        ? 'bg-slate-900'
+                        : 'bg-slate-200'
+                    }`}
+                  />
+                </div>
+                <span
+                  className={`text-[10px] leading-tight ${
+                    current
+                      ? 'font-bold text-slate-900'
+                      : 'font-medium text-slate-400'
+                  }`}
+                >
+                  {label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </Card>
+
+      {/* 4. MAS Advisory Directive (INV-01) */}
+      <ActionCard
+        title={
+          activeTask.action_card_title ||
+          activeTask.display_name ||
+          activeTask.incident_type
+        }
         priority={activeTask.severity_level}
         directive={activeTask.action_directive || activeTask.repair_notes}
       />
 
-      {/* 4. Live Pipe Flow Velocity */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-        <div>
-          <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-            <Droplets className="w-4 h-4 text-sky-600" /> Live Pipe Flow
-          </h4>
-          <p className="text-[10px] text-slate-500">Real-time YF-S201 turbine reading from Hot Store</p>
-        </div>
-
-        <div className="text-right">
-          <span className="text-xl font-black font-mono text-slate-900">
-            {currentFlow.toFixed(2)}
-          </span>
-          <span className="text-xs text-slate-400 font-medium ml-1">LPM</span>
-        </div>
-      </div>
-
-      {/* 5. Closed-Loop State Handling */}
-
-      {/* State A: PENDING_VERIFICATION (Show 15-Minute Timer) */}
-      {isPendingVerification && (
-        <VerificationTimer
-          taskId={id}
-          nodeId={activeTask.node_id}
-          pendingSince={activeTask.pending_verification_since || activeTask.detected_at}
-          onStatusChange={() => fetchTaskDetails(id)}
-        />
-      )}
-
-      {/* State B: CLOSED_VERIFIED (Job Completed) */}
-      {isClosedVerified && (
-        <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-2xl text-center space-y-2">
-          <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
-          <h3 className="text-sm font-bold text-emerald-900">Repair Verified & Closed</h3>
-          <p className="text-xs text-emerald-700 max-w-sm mx-auto">
-            Quiescent flow rate maintained for the 15-minute observation window. Work order is successfully closed.
-          </p>
-          {activeTask.resolved_at && (
-            <span className="inline-block text-[10px] text-emerald-600 font-mono mt-2">
-              Resolved: {activeTask.resolved_at}
+      {/* 5. Live Pipe Flow & Seal Test Card */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <IconTile icon={Droplets} tone="sky" />
+            <div className="min-w-0">
+              <h4 className="text-sm font-bold text-slate-900">
+                Live Pipe Flow Sensor
+              </h4>
+              <p className="text-[11px] text-slate-500">
+                Must read &le; 0.05 LPM once gate valve &amp; pipe seal are tight
+              </p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="leading-none">
+              <span className={`text-2xl font-black font-mono ${flowTone.text}`}>
+                {isTelemetryFresh ? currentFlow.toFixed(2) : '—'}
+              </span>
+              <span className="text-xs text-slate-400 font-medium ml-1">
+                LPM
+              </span>
+            </div>
+            <span
+              className={`inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border ${flowTone.chip}`}
+            >
+              {flowTone.label}
             </span>
-          )}
+          </div>
         </div>
-      )}
 
-      {/* State C: DISPATCHED or REPAIR_FAILED (Show Repair Form) */}
-      {(!isPendingVerification && !isClosedVerified) && (
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <Wrench className="w-4 h-4 text-sky-600" />
-            <h3 className="text-xs font-bold text-slate-900">Submit Repair Report</h3>
+        {/* Field Test Helper: Clamp Pipe & Broadcast Quiescent Flow */}
+        {(!isTelemetryFresh || currentFlow > 0.05) && !isClosedVerified && (
+          <div className="pt-2.5 border-t border-black/[0.04] flex items-center justify-between gap-2">
+            <span className="text-[11px] text-slate-500">
+              {!isTelemetryFresh
+                ? 'Simulate physical pipe clamp & quiescent sensor stream?'
+                : 'Pipe is still flowing. Simulate clamping pipe to 0.02 LPM?'}
+            </span>
+            <button
+              type="button"
+              onClick={handleSimulatePipeSeal}
+              disabled={sealingPipe}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>
+                {sealingPipe
+                  ? 'Clamping...'
+                  : 'Clamp Pipe to 0.02 LPM (Demo)'}
+              </span>
+            </button>
+          </div>
+        )}
+      </Card>
+
+      {/* =====================================================================
+          STAGE 1 GATE: ARRIVE ON-SITE & ENABLE MAINTENANCE MODE
+          ===================================================================== */}
+      {!isOnSite && !isPendingVerification && !isClosedVerified && (
+        <Card className="p-5 space-y-4 !border-sky-200 bg-sky-50/40">
+          <div className="space-y-1">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#0284c7]">
+              Stage 1 • Field Arrival Protocol
+            </span>
+            <h3 className="text-base font-bold text-slate-900">
+              Have you arrived at {activeTask.node_id}?
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Checking in on-site automatically switches meter{' '}
+              <strong className="font-mono">{activeTask.node_id}</strong> to{' '}
+              <strong>Maintenance Mode</strong> (Protocol 05) to silence false AI alarms while you service the pipe.
+            </p>
           </div>
 
-          {submitError && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{submitError}</span>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={handleArriveOnSite}
+            disabled={arriving}
+            className={`${btnPrimary} w-full min-h-[50px] !bg-[#0c4a6e] hover:!bg-[#075985] cursor-pointer`}
+          >
+            <MapPin className="w-4 h-4 text-sky-300" />
+            <span>
+              {arriving
+                ? 'Enabling Maintenance Mode...'
+                : 'Arrive On-Site & Start Inspection'}
+            </span>
+          </button>
+        </Card>
+      )}
 
-          {isFailed && (
-            <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+      {/* =====================================================================
+          STAGE 2 & 3 WORKBENCH: SAFETY ISOLATION CHECKLIST + REPAIR LOG
+          ===================================================================== */}
+      {isOnSite && !isPendingVerification && !isClosedVerified && (
+        <div className="space-y-4">
+          {/* Stage 2: Mandatory 3-Point Isolation Checklist */}
+          <Card className="p-5 space-y-3.5">
+            <div className="flex items-center justify-between">
               <div>
-                <strong>Previous Verification Failed:</strong> Recurrent flow detected during the last observation. Please re-check the pipe seal and re-submit.
+                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-700">
+                  Stage 2 • Valve &amp; Site Isolation (INV-01)
+                </span>
+                <h3 className="text-sm font-bold text-slate-900 mt-0.5">
+                  Pre-Repair Safety Checklist
+                </h3>
               </div>
+              <span className="text-xs font-mono font-bold text-slate-500">
+                {checkedSafety.length}/{SAFETY_ISOLATION_CHECKS.length} Done
+              </span>
             </div>
-          )}
 
-          {/* Quick-fill Action Checkbox Pills */}
-          <div>
-            <label className="block text-[11px] font-semibold text-slate-500 mb-2">
-              Common Repair Actions (Tap to Add)
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {COMMON_REPAIR_ACTIONS.map((action) => {
-                const isSelected = selectedActions.includes(action);
+            <div className="space-y-2">
+              {SAFETY_ISOLATION_CHECKS.map((item) => {
+                const isChecked = checkedSafety.includes(item.id);
                 return (
                   <button
-                    key={action}
+                    key={item.id}
                     type="button"
-                    onClick={() => toggleAction(action)}
-                    className={`text-[11px] px-2.5 py-1.5 rounded-lg border transition text-left font-medium ${
-                      isSelected
-                        ? 'bg-sky-50 text-sky-800 border-sky-300'
-                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    onClick={() => toggleSafetyCheck(item.id)}
+                    className={`w-full p-3 rounded-xl border text-left text-xs font-medium flex items-center gap-3 transition cursor-pointer ${
+                      isChecked
+                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950 font-semibold'
+                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
-                    {action}
+                    <span
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                        isChecked
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'bg-white border-slate-300'
+                      }`}
+                    >
+                      {isChecked && <Check className="w-3.5 h-3.5" />}
+                    </span>
+                    <span>{item.label}</span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          </Card>
 
-          <form onSubmit={handleSubmitRepair} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">
-                Technician Field Remarks
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={repairNotes}
-                onChange={(e) => setRepairNotes(e.target.value)}
-                placeholder="Describe actions taken (e.g. Replaced PVC coupling, verified static pressure)..."
-                className="w-full text-xs p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
-              />
+          {/* Stage 3: Physical Repair Log (Unlocks once Stage 2 Isolation is checked) */}
+          <Card
+            className={`p-5 space-y-5 transition-opacity ${
+              !allSafetyChecked ? 'opacity-60' : 'opacity-100'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <IconTile icon={Wrench} tone="slate" />
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
+                    Stage 3 • Field Remediation
+                  </span>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    {isFailed ? 'Re-log your repair' : 'Document physical repair'}
+                  </h3>
+                </div>
+              </div>
+              {!allSafetyChecked && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                  <Lock className="w-3 h-3" /> Complete Stage 2 first
+                </span>
+              )}
             </div>
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  <CheckSquare className="w-4 h-4" />
-                  <span>Submit Repair & Start 15-Min Verification</span>
-                </>
-              )}
-            </button>
-          </form>
+            {submitError && <Alert tone="rose">{submitError}</Alert>}
+
+            {isFailed && (
+              <Alert tone="amber" icon={AlertTriangle}>
+                <strong>Last verification failed.</strong> Flow returned during the 15-minute observation window. Re-tighten the coupling and submit again.
+              </Alert>
+            )}
+
+            <fieldset disabled={!allSafetyChecked} className="space-y-4">
+              <div>
+                <Label className="mb-2">
+                  Standardized Repair Actions (tap all that apply)
+                </Label>
+                <div className="grid grid-cols-1 gap-2">
+                  {COMMON_REPAIR_ACTIONS.map((action) => {
+                    const isSelected = selectedActions.includes(action);
+                    return (
+                      <button
+                        key={action}
+                        type="button"
+                        role="checkbox"
+                        aria-checked={isSelected}
+                        onClick={() => {
+                          toggleAction(action);
+                          setConfirming(false);
+                        }}
+                        className={`min-h-[46px] px-3.5 py-2.5 rounded-xl border text-left text-xs font-medium flex items-center gap-3 transition active:scale-[0.99] cursor-pointer ${
+                          isSelected
+                            ? 'bg-slate-900 text-white border-slate-900'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <span
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                            isSelected
+                              ? 'bg-white text-slate-900 border-white'
+                              : 'border-slate-300'
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
+                        </span>
+                        {action}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmitRepair} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="repair-notes"
+                    className="block text-xs font-bold text-slate-700"
+                  >
+                    Technician Field Remarks &amp; Parts Used
+                  </label>
+                  <textarea
+                    id="repair-notes"
+                    rows={3}
+                    required
+                    value={repairNotes}
+                    onChange={(e) => {
+                      setRepairNotes(e.target.value);
+                      setConfirming(false);
+                    }}
+                    placeholder="Describe parts replaced, seal test outcome, and any follow-up notes..."
+                    className={`${inputClass} resize-none`}
+                  />
+                </div>
+
+                {/* Pre-Submission Seal Sanity Warning */}
+                {isTelemetryFresh && currentFlow > 0.05 && (
+                  <Alert tone="amber" icon={AlertTriangle}>
+                    <strong>Warning: Pipe is still flowing ({currentFlow.toFixed(2)} LPM).</strong>{' '}
+                    Ensure the coupling is sealed (or tap <em>&ldquo;Clamp Pipe to 0.02 LPM&rdquo;</em> above) so the 15-minute verification passes!
+                  </Alert>
+                )}
+
+                {confirming && (
+                  <Alert tone="sky" icon={CheckCircle2}>
+                    Submitting restores <strong>{activeTask.node_id}</strong> to{' '}
+                    <strong>ACTIVE</strong> mode and starts the{' '}
+                    <strong>15-minute quiescent verification timer</strong> (Rule BR-07).
+                  </Alert>
+                )}
+
+                <div className="flex gap-2">
+                  {confirming && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(false)}
+                      className={`${btnSecondary} min-h-[50px]`}
+                    >
+                      Back
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={
+                      !allSafetyChecked || isSubmitting || !repairNotes.trim()
+                    }
+                    className={`${
+                      confirming ? btnAccent : btnPrimary
+                    } flex-1 min-h-[50px] cursor-pointer disabled:opacity-50`}
+                  >
+                    {isSubmitting ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : confirming ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Confirm &amp; Start 15m Verification</span>
+                      </>
+                    ) : (
+                      <span>Submit Repair &amp; Restore Active Mode</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </fieldset>
+          </Card>
         </div>
+      )}
+
+      {/* =====================================================================
+          STAGE 4: 15-MINUTE QUIESCENT FLOW VERIFICATION (RULE BR-07)
+          ===================================================================== */}
+      {isPendingVerification && (
+        <VerificationTimer
+          taskId={id}
+          nodeId={activeTask.node_id}
+          pendingSince={
+            activeTask.pending_verification_since || activeTask.detected_at
+          }
+          onStatusChange={() => fetchTaskDetails(id).catch(() => {})}
+        />
+      )}
+
+      {/* =====================================================================
+          STAGE 5: VERIFIED CLOSED CERTIFICATE
+          ===================================================================== */}
+      {isClosedVerified && (
+        <div className="bg-emerald-50/90 border border-emerald-200 p-6 rounded-2xl text-center space-y-2 shadow-xs">
+          <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
+          <h3 className="text-base font-bold text-emerald-950">
+            Work Order Verified &amp; Closed
+          </h3>
+          <p className="text-xs text-emerald-800 max-w-sm mx-auto leading-relaxed">
+            Flow remained quiescent (&le; 0.05 LPM) across the 15-minute closed-loop verification window (Rule BR-07).
+          </p>
+          {activeTask.resolved_at && (
+            <span className="inline-block text-[11px] text-emerald-700 font-mono pt-1">
+              Verified at {activeTask.resolved_at}
+            </span>
+          )}
+          <div className="pt-3">
+            <Link to="/tasks" className={`${btnPrimary} inline-flex`}>
+              Return to Task Queue
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          STATE MACHINE AUDIT TRAIL (TABLE 3.10: incident_status_history)
+          ===================================================================== */}
+      {statusHistory.length > 0 && (
+        <Card className="p-4 space-y-2.5">
+          <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+            <History className="w-3.5 h-3.5 text-slate-500" />
+            <span>Work Order Audit Trail ({statusHistory.length} steps)</span>
+          </span>
+          <div className="space-y-1.5">
+            {statusHistory.map((h) => (
+              <div
+                key={h.history_id}
+                className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between text-[11px]"
+              >
+                <div>
+                  <span className="font-mono font-bold text-slate-800">
+                    {h.previous_status ? `${h.previous_status} → ` : ''}
+                    {h.new_status}
+                  </span>
+                  {h.changed_by_name && (
+                    <span className="text-slate-500 ml-1.5">
+                      by {h.changed_by_name}
+                    </span>
+                  )}
+                </div>
+                <span className="font-mono text-[10px] text-slate-400">
+                  {h.created_at}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
       )}
     </div>
   );

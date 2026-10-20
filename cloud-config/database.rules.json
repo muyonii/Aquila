@@ -2,7 +2,9 @@
   "rules": {
     "nodes": {
       ".read": true,
-      ".indexOn": ["status", "metadata/is_physical", "telemetry/timestamp", "telemetry/flow_rate_lpm"],
+
+      ".indexOn": ["status", "metadata/is_physical", "metadata/purok_cluster"],
+
       "$node_id": {
         "metadata": {
           ".write": true,
@@ -20,15 +22,18 @@
             ".validate": "!newData.exists() || newData.isString()"
           }
         },
+
         "status": {
           ".write": true,
-          ".validate": "!newData.exists() || (newData.isString() && (newData.val() === 'ACTIVE' || newData.val() === 'INACTIVE' || newData.val() === 'MAINTENANCE' || newData.val() === 'FAULT'))"
+          ".validate": "newData.isString() && (newData.val() === 'ACTIVE' || newData.val() === 'INACTIVE' || newData.val() === 'MAINTENANCE' || newData.val() === 'FAULT' || newData.val() === 'DECOMMISSIONED')"
         },
+
         "telemetry": {
           ".write": true,
-          ".validate": "!newData.exists() || (newData.hasChildren(['node_id', 'packet_sequence', 'timestamp', 'flow_rate_lpm', 'cumulative_liters', 'battery_voltage', 'is_simulated']) && newData.child('node_id').val() === $node_id)",
+          ".validate": "newData.hasChildren(['node_id', 'packet_sequence', 'timestamp', 'flow_rate_lpm', 'cumulative_liters', 'is_simulated']) && newData.child('node_id').val() === $node_id",
+
           "node_id": {
-            ".validate": "newData.isString()"
+            ".validate": "newData.isString() && newData.val().length > 0"
           },
           "packet_sequence": {
             ".validate": "newData.isNumber() && newData.val() >= 0"
@@ -42,9 +47,6 @@
           "cumulative_liters": {
             ".validate": "newData.isNumber() && newData.val() >= 0.0"
           },
-          "battery_voltage": {
-            ".validate": "newData.isNumber() && newData.val() >= 0.0 && newData.val() <= 6.0"
-          },
           "is_simulated": {
             ".validate": "newData.isBoolean()"
           },
@@ -54,35 +56,41 @@
         }
       }
     },
+
     "dag": {
       ".read": true,
       "edges": {
         ".write": true,
         "$upstream_node_id": {
+          ".validate": "root.child('nodes').hasChild($upstream_node_id)",
           "$downstream_node_id": {
-            ".validate": "newData.isBoolean() && newData.val() === true"
+            ".validate": "root.child('nodes').hasChild($downstream_node_id) && newData.isBoolean() && newData.val() === true"
           }
         }
       }
     },
+
     "blackboard": {
       ".read": true,
+
       "hypotheses": {
         "leak": {
-          ".indexOn": ["timestamp", "classification", "leak_probability"],
+          ".indexOn": ["timestamp", "classification", "academic_classification", "leak_probability"],
           "$node_id": {
             ".write": true,
-            ".validate": "!newData.exists() || (newData.hasChildren(['node_id', 'classification', 'leak_probability', 'flow_rate_lpm', 'timestamp']) && newData.child('node_id').val() === $node_id && newData.child('leak_probability').val() >= 0.0 && newData.child('leak_probability').val() <= 1.0)"
+            ".validate": "!newData.exists() || (newData.hasChildren(['node_id', 'classification', 'leak_probability', 'flow_rate_lpm', 'timestamp']) && newData.child('node_id').val() === $node_id && root.child('nodes').hasChild($node_id) && newData.child('leak_probability').val() >= 0.0 && newData.child('leak_probability').val() <= 1.0)"
           }
         },
+
         "fairness": {
           ".indexOn": ["timestamp", "is_disadvantaged", "rdi_score"],
           "$node_id": {
             ".write": true,
-            ".validate": "!newData.exists() || (newData.hasChildren(['node_id', 'rdi_score', 'delta_liters', 'community_mean_liters', 'is_disadvantaged', 'timestamp']) && newData.child('node_id').val() === $node_id && newData.child('rdi_score').val() >= 0.0)"
+            ".validate": "!newData.exists() || (newData.hasChildren(['node_id', 'rdi_score', 'delta_liters', 'community_mean_liters', 'is_disadvantaged', 'timestamp']) && newData.child('node_id').val() === $node_id && root.child('nodes').hasChild($node_id) && newData.child('rdi_score').val() >= 0.0)"
           }
         }
       },
+
       "heartbeats": {
         ".indexOn": ["timestamp", "status"],
         "$agent_id": {
@@ -90,12 +98,13 @@
           ".validate": "!newData.exists() || (newData.hasChildren(['agent_id', 'status', 'timestamp']) && newData.child('agent_id').val() === $agent_id && (newData.child('status').val() === 'HEALTHY' || newData.child('status').val() === 'DEGRADED'))"
         }
       },
+
       "incidents": {
         "active": {
-          ".indexOn": ["detected_at", "severity_level"],
+          ".indexOn": ["detected_at", "severity_level", "node_id"],
           "$incident_id": {
             ".write": true,
-            ".validate": "!newData.exists() || (newData.hasChildren(['node_id', 'incident_type', 'severity_level', 'detected_at']) && (newData.child('severity_level').val() === 'P1' || newData.child('severity_level').val() === 'P2' || newData.child('severity_level').val() === 'P3'))"
+            ".validate": "!newData.exists() || (newData.hasChildren(['node_id', 'incident_type', 'severity_level', 'detected_at']) && root.child('nodes').hasChild(newData.child('node_id').val()) && (newData.child('severity_level').val() === 'P1' || newData.child('severity_level').val() === 'P2' || newData.child('severity_level').val() === 'P3'))"
           }
         }
       }

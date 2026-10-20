@@ -1,6 +1,7 @@
-// frontend-ui/src/pages/admin/incidents/IncidentsPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { incidentManager } from './core/IncidentManager';
+import { adminApi } from '../../../api/admin_api';
+import { rtdbSubscription } from '../../../firebase/rtdb_subscription';
+import { IncidentModel } from './core/IncidentModel';
 
 import IncidentHeader from './components/IncidentHeader';
 import IncidentStageButtons from './components/IncidentStageButtons';
@@ -8,74 +9,95 @@ import IncidentQueueList from './components/IncidentQueueList';
 import IncidentInspectorPane from './components/IncidentInspectorPane';
 import LogComplaintModal from './components/LogComplaintModal';
 
+// Safe helper functions immune to Vite HMR class prototype caching
+const checkNeedsAction = (i) =>
+  typeof i?.needsAction === 'function'
+    ? i.needsAction()
+    : i?.status === 'OPEN' || i?.status === 'REPAIR_FAILED';
+
+const checkInFieldOrVerifying = (i) =>
+  typeof i?.isInFieldOrVerifying === 'function'
+    ? i.isInFieldOrVerifying()
+    : i?.status === 'DISPATCHED' || i?.status === 'PENDING_VERIFICATION';
+
+const checkIsResolved = (i) =>
+  typeof i?.isResolved === 'function'
+    ? i.isResolved()
+    : i?.status === 'CLOSED_VERIFIED' || i?.status === 'CANCELLED';
+
 export default function IncidentsPage() {
   const [data, setData] = useState({ incidents: [], technicians: [], nodes: [] });
-  const [activeStage, setActiveStage] = useState('needs_dispatch'); // 'needs_dispatch' | 'verifying' | 'resolved'
+  const [activeStage, setActiveStage] = useState('needs_dispatch');
   const [selectedIncidentId, setSelectedIncidentId] = useState(null);
   const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
 
-  // 1. Initial Load via OOP IncidentManager
   const reload = async () => {
-    const res = await incidentManager.loadAll();
-    setData(res);
+    try {
+      const [incRes, techRes, nodesRes] = await Promise.all([
+        adminApi.getIncidents(),
+        adminApi.getUsers('technician'),
+        adminApi.getNodes()
+      ]);
 
-    // Auto-select the first incident in the active stage if none selected
-    if (res?.incidents?.length > 0 && !selectedIncidentId) {
-      const firstOpen = res.incidents.find((i) => i.isOpen()) || res.incidents[0];
-      setSelectedIncidentId(firstOpen.id);
+      const rawIncidents = incRes?.success && Array.isArray(incRes.data) ? incRes.data : [];
+      const techs = techRes?.success && Array.isArray(techRes.data?.users) ? techRes.data.users : [];
+      const nodes = nodesRes?.success && Array.isArray(nodesRes.data?.nodes) ? nodesRes.data.nodes : [];
+
+      const parsedIncidents = rawIncidents.map((i) => new IncidentModel(i));
+      setData({ incidents: parsedIncidents, technicians: techs, nodes });
+
+      if (parsedIncidents.length > 0 && !selectedIncidentId) {
+        const firstOpen = parsedIncidents.find((i) => checkNeedsAction(i)) || parsedIncidents[0];
+        setSelectedIncidentId(firstOpen.id);
+      }
+    } catch (err) {
+      console.warn('[IncidentsPage] Failed loading incidents from REST API:', err.message);
     }
   };
 
   useEffect(() => {
     reload();
+    rtdbSubscription.subscribeConnectionStatus();
+    rtdbSubscription.subscribeAllNodes();
+
+    return () => {
+      rtdbSubscription.unsubscribeAll();
+    };
   }, []);
 
-  // 2. Computed Counts for the 3 Stage Switchers
   const counts = useMemo(() => {
-    const kpis = incidentManager.computeKpis(data.incidents);
+    const list = data.incidents;
     return {
-      needsDispatch: kpis.needsDispatch,
-      inVerification: kpis.inVerification,
-      resolved: kpis.resolvedToday
+      needsDispatch: list.filter((i) => checkNeedsAction(i)).length,
+      inVerification: list.filter((i) => checkInFieldOrVerifying(i)).length,
+      resolved: list.filter((i) => checkIsResolved(i)).length
     };
   }, [data.incidents]);
 
-  // 3. Filtered Lists per Stage
   const stageIncidents = useMemo(() => {
     switch (activeStage) {
       case 'needs_dispatch':
-        return data.incidents.filter((i) => i.isOpen());
+        return data.incidents.filter((i) => checkNeedsAction(i));
       case 'verifying':
-        return data.incidents.filter((i) => i.isVerifying());
+        return data.incidents.filter((i) => checkInFieldOrVerifying(i));
       case 'resolved':
-        return data.incidents.filter((i) => i.isResolved());
+        return data.incidents.filter((i) => checkIsResolved(i));
       default:
         return data.incidents;
     }
   }, [data.incidents, activeStage]);
 
-  // Update selected ticket when switching stages
-  useEffect(() => {
-    if (stageIncidents.length > 0) {
-      const stillInList = stageIncidents.some((i) => i.id === selectedIncidentId);
-      if (!stillInList) {
-        setSelectedIncidentId(stageIncidents[0].id);
-      }
-    } else {
-      setSelectedIncidentId(null);
-    }
-  }, [activeStage, stageIncidents]);
-
   const activeIncident = useMemo(() => {
     return data.incidents.find((i) => i.id === selectedIncidentId) || null;
   }, [data.incidents, selectedIncidentId]);
 
-  // 4. Action Handlers
   const handleDispatch = async (incidentId, technicianId) => {
     try {
-      await incidentManager.dispatch(incidentId, technicianId);
-      reload();
+      await adminApi.dispatchTechnician(incidentId, technicianId);
+      await reload();
+      setActiveStage('verifying');
+      setSelectedIncidentId(incidentId);
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to dispatch plumber.');
     }
@@ -83,8 +105,10 @@ export default function IncidentsPage() {
 
   const handleDismiss = async (incidentId, reason) => {
     try {
-      await incidentManager.dismiss(incidentId, reason);
-      reload();
+      await adminApi.cancelIncident(incidentId, reason);
+      await reload();
+      setActiveStage('resolved');
+      setSelectedIncidentId(incidentId);
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to dismiss incident.');
     }
@@ -93,9 +117,13 @@ export default function IncidentsPage() {
   const handleCreateComplaint = async (formPayload) => {
     setSubmittingComplaint(true);
     try {
-      await incidentManager.createComplaint(formPayload);
+      const res = await adminApi.createManualIncident(formPayload);
       setIsComplaintModalOpen(false);
-      reload();
+      await reload();
+      setActiveStage('needs_dispatch');
+      if (res?.data?.incident_id) {
+        setSelectedIncidentId(res.data.incident_id);
+      }
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to log complaint.');
     } finally {
@@ -105,31 +133,16 @@ export default function IncidentsPage() {
 
   return (
     <div className="h-screen max-h-screen flex flex-col bg-[#f4f5f8] text-[#1d1d1f] p-5 sm:p-6 select-none font-sans overflow-hidden">
-      
-      {/* 1. Header with Breadcrumb (Fixed at top) */}
       <div className="shrink-0 mb-4">
         <IncidentHeader onLogComplaintClick={() => setIsComplaintModalOpen(true)} />
       </div>
 
-      {/* 2. THE SPLIT-PANE WORKSPACE (Right side takes more width) */}
       <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-6 overflow-hidden">
-        
-        {/* ===================================================================
-            LEFT COLUMN: Compact focused width (w-[390px] / xl:w-[420px])
-            =================================================================== */}
         <div className="w-full lg:w-[390px] xl:w-[420px] flex flex-col h-full min-h-0 shrink-0 overflow-hidden">
-          
-          {/* The 3 Stage Buttons */}
           <div className="shrink-0 mb-3">
-            <IncidentStageButtons
-              activeStage={activeStage}
-              onStageChange={setActiveStage}
-              counts={counts}
-            />
+            <IncidentStageButtons activeStage={activeStage} onStageChange={setActiveStage} counts={counts} />
           </div>
-
-          {/* Queue List with internal scroll */}
-          <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent]">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-1.5 [scrollbar-width:thin]">
             <IncidentQueueList
               incidents={stageIncidents}
               selectedId={selectedIncidentId}
@@ -139,21 +152,17 @@ export default function IncidentsPage() {
           </div>
         </div>
 
-        {/* ===================================================================
-            RIGHT COLUMN: Takes all the generous remaining width (flex-1)
-            =================================================================== */}
         <div className="flex-1 h-full min-h-0 flex flex-col overflow-hidden">
           <IncidentInspectorPane
             incident={activeIncident}
             technicians={data.technicians}
             onDispatch={handleDispatch}
             onDismiss={handleDismiss}
+            onRefresh={reload}
           />
         </div>
-
       </div>
 
-      {/* 3. Log Citizen Complaint Modal */}
       <LogComplaintModal
         isOpen={isComplaintModalOpen}
         onClose={() => setIsComplaintModalOpen(false)}
@@ -161,7 +170,6 @@ export default function IncidentsPage() {
         onSubmit={handleCreateComplaint}
         submitting={submittingComplaint}
       />
-
     </div>
   );
 }

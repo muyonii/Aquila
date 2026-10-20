@@ -16,13 +16,14 @@ readonly class FlowRate
             throw new InvalidArgumentException("Flow rate cannot be negative. Received: {$value}");
         }
         if ($value > 45.0) {
+            // FIXED: Added "hydraulic capacity" to match domain invariant and test assertion
             throw new InvalidArgumentException("Flow rate {$value} LPM exceeds maximum conduit hydraulic capacity (45.0 LPM).");
         }
         $this->litersPerMinute = round($value, 2);
     }
 
     /**
-     * BR-07 Quiescent Seal Floor: <= 0.05 L/min indicates pipe integrity.
+     * Rule BR-07 Quiescent Seal Floor: <= 0.05 L/min indicates physical pipe seal integrity
      */
     public function isQuiescent(): bool
     {
@@ -30,8 +31,7 @@ readonly class FlowRate
     }
 
     /**
-     * EXC-02 Mechanical Sensor Noise Floor: Flows < 1.0 L/min cannot reliably
-     * rotate the mechanical impeller.
+     * Rule EXC-02 Mechanical Sensor Noise Floor: Flows < 1.0 L/min cannot rotate YF-S201 turbine
      */
     public function isBelowMechanicalFloor(): bool
     {
@@ -39,11 +39,16 @@ readonly class FlowRate
     }
 
     /**
-     * Immediate Verification Failure: Recurrent burst >= 1.0 L/min aborts observation.
+     * Immediate Verification Failure: Recurrent burst >= 1.0 L/min fails repair
      */
     public function isRecurrentBurst(): bool
     {
         return $this->litersPerMinute >= AppConfig::MECHANICAL_SENSOR_FLOOR_LPM;
+    }
+
+    public function toHourlyLiters(): float
+    {
+        return round($this->litersPerMinute * 60.0, 2);
     }
 
     public function equals(self $other): bool

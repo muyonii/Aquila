@@ -1,73 +1,71 @@
 /**
  * ConsoleDashboard
- * Renders a dual-panel CLI dashboard:
- *   Top Panel: Live Node Telemetry Table
- *   Bottom Panel: Live Activity Audit Stream (INV-06)
+ *
+ * Renders an ANSI terminal UI for live demonstration and testing.
+ * Features flow sparklines, state indicators, and keyboard shortcuts.
  */
 export class ConsoleDashboard {
-    static auditLogs = [];
-
-    static logAudit(category, message) {
-        const timeStr = new Date().toLocaleTimeString();
-        this.auditLogs.push(`[${timeStr}] [${category}] ${message}`);
-        if (this.auditLogs.length > 5) {
-            this.auditLogs.shift();
-        }
+    static generateSparkline(flowRateLpm) {
+        if (flowRateLpm <= 0.05) return '      ';
+        if (flowRateLpm < 2.0)  return '  ▃   ';
+        if (flowRateLpm < 5.0)  return '  ▃▅  ';
+        if (flowRateLpm < 10.0) return ' ▃▅▇ ';
+        return '▃▅▇█▇';
     }
 
-    static render(nodeStates, activeScenarioName, tickCount, isDemoMode = true) {
-        console.clear();
-        const timeStr = new Date().toLocaleTimeString();
+    static render(scenarioEngine, streamResult = {}) {
+        const preset = scenarioEngine.getActivePreset();
+        const states = scenarioEngine.stateManager.getAllStates();
+        const isAccelerated = scenarioEngine.isAccelerated;
+        const isChaos = scenarioEngine.isChaosMode;
+        const currentHour = scenarioEngine.getCurrentSimulatedHour();
 
-        console.log("==========================================================================================");
-        console.log(" AQUILA HYDRAULIC SIMULATION HARNESS — LIVE DASHBOARD & AUDIT STREAM");
-        console.log(` Target: Firebase RTDB | Mode: ${isDemoMode ? 'DEMO (Fast 1-Tick)' : 'PRODUCTION'} | Tick: ${tickCount} | PST: ${timeStr}`);
-        console.log(` Active Scenario: [${activeScenarioName}]`);
-        console.log("==========================================================================================");
+        // Clear terminal screen and move cursor to top-left
+        process.stdout.write('\x1Bc');
+
+        console.log('========================================================================================');
+        console.log(' AQUILA Digital Twin Simulation Harness (CMP-SIM-01)');
+        console.log(' Target Hot Store : ' + scenarioEngine.stateManager.states['NODE-B1-001'] ? 'Connected' : 'Disconnected');
+        console.log(' Simulated Hour   : ' + String(currentHour).padStart(2, '0') + ':00 PST | Cadence: ' + (isAccelerated ? '250ms (Accelerated ⏩)' : '15s (Real-Time ⏱️)'));
+        console.log(' Active Preset    : [' + preset.key + '] ' + preset.title);
+        console.log(' Chaos Mode       : ' + (isChaos ? 'ENABLED (20% Packet Loss 💥)' : 'Disabled'));
+        console.log('========================================================================================');
+
         console.log(
-            ` ${"NODE ID".padEnd(12)} | ` +
-            `${"LOCATION ADDRESS / LANDMARK".padEnd(38)} | ` +
-            `${"FLOW (LPM)".padEnd(10)} | ` +
-            `${"TOTAL (L)".padEnd(10)} | ` +
-            `${"STATUS"}`
+            'Node ID'.padEnd(13) + ' | ' +
+            'Household Label'.padEnd(28) + ' | ' +
+            'Flow (LPM)'.padEnd(11) + ' | ' +
+            'StdDev (σ)'.padEnd(10) + ' | ' +
+            'Odometer (L)'.padEnd(13) + ' | ' +
+            'Sparkline'
         );
-        console.log("------------------------------------------------------------------------------------------");
+        console.log('----------------------------------------------------------------------------------------');
 
-        for (const [nodeId, state] of Object.entries(nodeStates)) {
-            let flowStr = state.is_physical ? "[HARDWARE]" : `${state.last_flow_lpm.toFixed(2)} LPM`;
-            if (state.last_flow_lpm > 2.5 && !state.is_physical) {
-                flowStr += " ⚠️";
-            }
-
-            const locStr = state.location_name.length > 38 
-                ? state.location_name.substring(0, 35) + "..." 
-                : state.location_name.padEnd(38);
+        for (const [nodeId, state] of Object.entries(states)) {
+            const flowStr = String(state.current_flow_lpm.toFixed(2)).padStart(6) + ' L/m';
+            const stdStr  = String(state.effective_std.toFixed(3)).padStart(6);
+            const odoStr  = String(state.cumulative_liters.toFixed(1)).padStart(8) + ' L';
+            const spark   = this.generateSparkline(state.current_flow_lpm);
+            
+            let tag = state.is_physical ? (state.is_hardware_active ? '[HW Live]' : '[HW Failover]') : '[Virtual]';
 
             console.log(
-                ` ${state.node_id.padEnd(12)} | ` +
-                `${locStr} | ` +
-                `${flowStr.padEnd(10)} | ` +
-                `${state.cumulative_liters.toFixed(1).padEnd(10)} | ` +
-                `${state.status}`
+                nodeId.padEnd(13) + ' | ' +
+                (state.household_label.slice(0, 25) + '..').padEnd(28) + ' | ' +
+                flowStr.padEnd(11) + ' | ' +
+                stdStr.padEnd(10) + ' | ' +
+                odoStr.padEnd(13) + ' | ' +
+                spark + ' ' + tag
             );
         }
 
-        console.log("==========================================================================================");
-        console.log(" REAL-TIME SYSTEM ACTIVITY AUDIT STREAM (RULE & EVENT VERIFICATION):");
-        if (this.auditLogs.length === 0) {
-            console.log(" [System initialized. Awaiting first telemetry tick...]");
-        } else {
-            for (const log of this.auditLogs) {
-                console.log(` ${log}`);
-            }
-        }
+        console.log('----------------------------------------------------------------------------------------');
+        console.log(' [1-7] Presets: 1:Normal  2:Burst  3:MainLine  4:Toilet  5:NightMNF  6:Fairness  7:Drought');
+        console.log(' [A] Toggle Time-Warp Speed  |  [C] Toggle Chaos Mode  |  [R] Reset Odometer  |  [Q] Quit');
+        console.log('========================================================================================');
 
-        console.log("==========================================================================================");
-        console.log(" SCENARIO CONTROLS:");
-        console.log("   [1] Baseline Normal    [2] Leak Node 002    [3] Equity Shortage Node 008");
-        console.log("   [4] Cascade Rule BR-06 [5] Drought BR-05    [6] Repair Success (Quiet)");
-        console.log("   [7] Repair Fail Burst  [8] Offline Watchdog [9] Toggle Maintenance Node 005");
-        console.log("   [0] Reset All Baseline [q] Quit Harness");
-        console.log("==========================================================================================");
+        if (streamResult.droppedCount > 0) {
+            console.log(`💥 [Chaos Alert] Dropped ${streamResult.droppedCount} telemetry packets this tick.`);
+        }
     }
 }

@@ -1,19 +1,26 @@
 <?php
 declare(strict_types=1);
 
+// Prevent PHP warnings/notices from leaking HTML into JSON API responses
+ini_set('display_errors', '0');
+error_reporting(E_ALL);
+
 require_once __DIR__ . '/../vendor/autoload.php';
 
+use Aquila\Config\AppConfig;
+use Aquila\Config\Database;
 use Aquila\Config\Env;
-use Aquila\Controllers\AuthController;
-use Aquila\Controllers\WebhookController;
-use Aquila\Controllers\IncidentController;
-use Aquila\Controllers\TaskController;
-use Aquila\Controllers\ResidentController;
 use Aquila\Controllers\AnalyticsController;
-use Aquila\Controllers\NodeController;
 use Aquila\Controllers\AuditController;
-use Aquila\Controllers\UserController;
+use Aquila\Controllers\AuthController;
+use Aquila\Controllers\IncidentController;
+use Aquila\Controllers\NodeController;
+use Aquila\Controllers\NotificationController;
 use Aquila\Controllers\ReportController;
+use Aquila\Controllers\ResidentController;
+use Aquila\Controllers\TaskController;
+use Aquila\Controllers\UserController;
+use Aquila\Controllers\WebhookController;
 use Aquila\Middleware\CorsMiddleware;
 
 // 1. Load Environment Configuration
@@ -45,21 +52,84 @@ $method     = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 // ROUTE REGISTRY
 // =============================================================================
 
-// 1. HEALTH CHECK (Root / Public Base)
+// -----------------------------------------------------------------------------
+// 1. HEALTH CHECK & SYSTEM DIAGNOSTICS
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && ($requestUri === '' || str_ends_with($requestUri, '/public') || str_ends_with($requestUri, '/health'))) {
     header('Content-Type: application/json');
     echo json_encode([
         "system"    => "AQUILA Cold Transactional Governance API",
-        "version"   => "v2.2.0",
+        "version"   => "v2.3.0",
         "status"    => "OPERATIONAL",
         "timestamp" => time()
     ], JSON_PRETTY_PRINT);
     exit;
 }
 
-// 2. AUTHENTICATION & IDENTITY
+if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/system/health')) {
+    header('Content-Type: application/json');
+    
+    $dbHealthy = false;
+    try {
+        $db = Database::getConnection();
+        $db->query("SELECT 1");
+        $dbHealthy = true;
+    } catch (\Throwable $e) {}
+
+    $fbUrl = rtrim(AppConfig::getFirebaseUrl(), '/') . '/blackboard/heartbeats.json';
+    $ch = curl_init($fbUrl);
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]);
+    $fbRaw = curl_exec($ch);
+    $fbCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    
+    $fbHeartbeats = ($fbCode >= 200 && $fbCode < 300) ? json_decode((string)$fbRaw, true) : null;
+
+    echo json_encode([
+        "success" => true,
+        "data" => [
+            "system_name"        => "AQUILA Distributed Smart Water System",
+            "version"            => "2.3.0",
+            "environment"        => Env::get('APP_ENV', 'local'),
+            "database_mysql"     => ["status" => $dbHealthy ? "HEALTHY" : "DOWN"],
+            "hot_store_firebase" => ["status" => ($fbHeartbeats !== null) ? "HEALTHY" : "DEGRADED"],
+            "agent_heartbeats"   => $fbHeartbeats ?? [],
+            "server_time"        => date('Y-m-d H:i:s'),
+            "timezone"           => date_default_timezone_get()
+        ]
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+// -----------------------------------------------------------------------------
+// 2. AUTHENTICATION & IDENTITY (Tables 3.1, 3.2, 3.3, 3.4)
+// -----------------------------------------------------------------------------
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/register')) {
+    (new AuthController())->register();
+    exit;
+}
+if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/users/pending-approvals')) {
+    (new UserController())->listPendingApprovals();
+    exit;
+}
+if ($method === 'PATCH' && preg_match('#/api/v1/users/(\d+)/approve-meter$#', $requestUri, $matches)) {
+    (new UserController())->approveResidentMeter((int)$matches[1]);
+    exit;
+}
 if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/login')) {
     (new AuthController())->login();
+    exit;
+}
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/google')) {
+    (new AuthController())->googleLogin();
+    exit;
+}
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/refresh')) {
+    (new AuthController())->refreshToken();
+    exit;
+}
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/logout')) {
+    (new AuthController())->logout();
     exit;
 }
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/auth/me')) {
@@ -70,8 +140,26 @@ if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/change-passwo
     (new AuthController())->changePassword();
     exit;
 }
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/forgot-password')) {
+    (new AuthController())->forgotPassword();
+    exit;
+}
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/reset-password')) {
+    (new AuthController())->resetPassword();
+    exit;
+}
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/verify-otp')) {
+    (new AuthController())->verifyOtp();
+    exit;
+}
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/auth/request-otp')) {
+    (new AuthController())->requestOtp();
+    exit;
+}
 
-// 3. USER MANAGEMENT & RBAC
+// -----------------------------------------------------------------------------
+// 3. USER MANAGEMENT & RBAC (Table 3.1)
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/users')) {
     (new UserController())->listUsers();
     exit;
@@ -89,7 +177,9 @@ if ($method === 'DELETE' && preg_match('#/api/v1/users/(\d+)$#', $requestUri, $m
     exit;
 }
 
-// 4. INFRASTRUCTURE NODES & HYDRAULIC DAG TOPOLOGY
+// -----------------------------------------------------------------------------
+// 4. INFRASTRUCTURE NODES & HYDRAULIC DAG TOPOLOGY (Tables 3.6 & 3.7)
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/nodes')) {
     (new NodeController())->listNodes();
     exit;
@@ -107,7 +197,9 @@ if ($method === 'DELETE' && preg_match('#/api/v1/nodes/([a-zA-Z0-9\-]+)$#', $req
     exit;
 }
 
-// 5. INCIDENT TICKETS & DECISION SUPPORT (UC-04)
+// -----------------------------------------------------------------------------
+// 5. INCIDENT TICKETS & DECISION SUPPORT (Tables 3.9, 3.10, 3.11)
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/incidents')) {
     (new IncidentController())->listIncidents();
     exit;
@@ -132,8 +224,19 @@ if ($method === 'POST' && preg_match('#/api/v1/incidents/([a-zA-Z0-9\-]+)/verify
     (new IncidentController())->evaluateVerification($matches[1]);
     exit;
 }
+// ACTION CARD TEMPLATES & SOP DIRECTIVES (Table 3.9)
+if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/action-cards')) {
+    (new \Aquila\Controllers\ActionCardController())->listTemplates();
+    exit;
+}
+if ($method === 'PUT' && preg_match('#/api/v1/action-cards/(\d+)$#', $requestUri, $matches)) {
+    (new \Aquila\Controllers\ActionCardController())->updateTemplate((int)$matches[1]);
+    exit;
+}
 
-// 6. TECHNICIAN FIELD TASKS (UC-05)
+// -----------------------------------------------------------------------------
+// 6. TECHNICIAN FIELD TASKS (Work Order Dispatch Queue)
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/tasks')) {
     (new TaskController())->getMyTasks();
     exit;
@@ -142,30 +245,66 @@ if ($method === 'GET' && preg_match('#/api/v1/tasks/([a-zA-Z0-9\-]+)$#', $reques
     (new TaskController())->getTaskDetails($matches[1]);
     exit;
 }
+if ($method === 'POST' && preg_match('#/api/v1/tasks/([a-zA-Z0-9\-]+)/claim$#', $requestUri, $matches)) {
+    (new TaskController())->claimOpenTask($matches[1]);
+    exit;
+}
+if ($method === 'PATCH' && preg_match('#/api/v1/tasks/([a-zA-Z0-9\-]+)/arrive$#', $requestUri, $matches)) {
+    (new TaskController())->arriveOnSite($matches[1]);
+    exit;
+}
 if ($method === 'PATCH' && preg_match('#/api/v1/tasks/([a-zA-Z0-9\-]+)/repair$#', $requestUri, $matches)) {
     (new TaskController())->submitRepair($matches[1]);
     exit;
 }
 
-// 7. RESIDENT WATER CONSUMPTION & RLS (UC-01 & RA 10173)
+// -----------------------------------------------------------------------------
+// 7. RESIDENT WATER CONSUMPTION & RLS (Table 3.8 & RA 10173)
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/resident/my-water')) {
     (new ResidentController())->getMyWater();
     exit;
 }
+if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/resident/concern')) {
+    (new ResidentController())->submitConcern();
+    exit;
+}
 
+// -----------------------------------------------------------------------------
 // 8. CLUSTER ANALYTICS & KPIS
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/analytics/summary')) {
     (new AnalyticsController())->getClusterSummary();
     exit;
 }
 
-// 9. IMMUTABLE AUDIT TRAIL LEDGER (UC-07 & INV-06)
+// -----------------------------------------------------------------------------
+// 9. SYSTEM NOTIFICATIONS & WEB ALERTS (Table 3.13)
+// -----------------------------------------------------------------------------
+if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/notifications')) {
+    (new NotificationController())->getMyNotifications();
+    exit;
+}
+if ($method === 'PATCH' && preg_match('#/api/v1/notifications/(\d+)/read$#', $requestUri, $matches)) {
+    (new NotificationController())->markAsRead((int)$matches[1]);
+    exit;
+}
+if ($method === 'PATCH' && str_ends_with($requestUri, '/api/v1/notifications/read-all')) {
+    (new NotificationController())->markAllAsRead();
+    exit;
+}
+
+// -----------------------------------------------------------------------------
+// 10. IMMUTABLE AUDIT TRAIL LEDGER (Table 3.12 & INV-06)
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/audit-logs')) {
     (new AuditController())->listAuditLogs();
     exit;
 }
 
-// 10. REGULATORY & OPERATIONAL REPORTS (UC-08)
+// -----------------------------------------------------------------------------
+// 11. REGULATORY & OPERATIONAL REPORTS (Table 3.8 & Table 3.11)
+// -----------------------------------------------------------------------------
 if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/reports/consumption')) {
     (new ReportController())->getConsumptionReport();
     exit;
@@ -183,13 +322,33 @@ if ($method === 'GET' && str_ends_with($requestUri, '/api/v1/reports/export')) {
     exit;
 }
 
-// 11. AGENT WEBHOOK INGESTION (HMAC-SHA256)
+// -----------------------------------------------------------------------------
+// 12. ON-DEMAND HOURLY SQL COMPACTION TRIGGER (Live Demo Accelerator)
+// -----------------------------------------------------------------------------
+if (($method === 'POST' || $method === 'GET') && str_ends_with($requestUri, '/api/v1/reports/compact-now')) {
+    header('Content-Type: application/json');
+    ob_start();
+    require_once __DIR__ . '/../cron/compact_hourly_telemetry.php';
+    $output = ob_get_clean();
+    echo json_encode([
+        "success" => true,
+        "message" => "Hourly database compaction executed successfully.",
+        "log"     => trim((string)$output)
+    ], JSON_PRETTY_PRINT);
+    exit;
+}
+
+// -----------------------------------------------------------------------------
+// 13. AGENT WEBHOOK INGESTION (HMAC-SHA256 Signature Verified)
+// -----------------------------------------------------------------------------
 if ($method === 'POST' && str_ends_with($requestUri, '/api/v1/webhooks/incident')) {
     (new WebhookController())->handleIncident();
     exit;
 }
 
-// 12. 404 CATCH-ALL FOR UNMATCHED ROUTES
+// -----------------------------------------------------------------------------
+// 14. 404 CATCH-ALL FOR UNMATCHED ROUTES
+// -----------------------------------------------------------------------------
 http_response_code(404);
 header('Content-Type: application/json');
 echo json_encode([

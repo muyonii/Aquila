@@ -9,7 +9,8 @@ import {
   Users,
   Settings,
   LogOut,
-  PanelLeft
+  PanelLeft,
+  Activity
 } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { to: '/network-map', label: 'Network Map', icon: Network },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/users', label: 'Users', icon: Users },
+  { to: '/inspector', label: 'System Inspector', icon: Activity },
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 

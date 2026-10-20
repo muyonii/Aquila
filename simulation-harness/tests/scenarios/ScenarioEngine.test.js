@@ -1,43 +1,53 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import { NodeStateManager } from '../../src/core/NodeStateManager.js';
 import { ScenarioEngine } from '../../src/scenarios/ScenarioEngine.js';
+import { SCENARIO_PRESETS } from '../../src/scenarios/ScenarioPresets.js';
 
-describe('ScenarioEngine (Demonstration Preset Manager)', () => {
+describe('ScenarioEngine (Presets, Overrides & Chaos Testing)', () => {
+    test('Activates preset by shortcut key correctly', () => {
+        const manager = new NodeStateManager();
+        const engine = new ScenarioEngine(manager);
 
-    test('Default scenario is BASELINE_NORMAL with empty overrides', () => {
-        const engine = new ScenarioEngine();
-        assert.equal(engine.activeScenarioKey, 'BASELINE_NORMAL');
-        assert.deepEqual(engine.getOverrides(), {});
+        const activated = engine.setPreset('2'); // Key '2' = SUDDEN_BURST
+        assert.equal(activated.id, 'SUDDEN_BURST');
+        assert.equal(engine.getActivePreset().id, 'SUDDEN_BURST');
     });
 
-    test('Switches to CRITICAL_LEAK and applies 3.52 LPM override to NODE-B1-002', () => {
-        const engine = new ScenarioEngine();
-        const ok = engine.setScenario('CRITICAL_LEAK');
+    test('SUDDEN_BURST preset locks Node B1-002 flow to 18.0 LPM', () => {
+        const manager = new NodeStateManager();
+        const engine = new ScenarioEngine(manager);
 
-        assert.equal(ok, true);
-        assert.equal(engine.activeScenarioKey, 'CRITICAL_LEAK');
-        
-        const overrides = engine.getOverrides();
-        assert.ok(overrides['NODE-B1-002']);
-        assert.equal(overrides['NODE-B1-002'].fixed_flow_lpm, 3.52);
+        engine.setPreset('SUDDEN_BURST');
+        const results = engine.evaluateTick(15);
+
+        assert.equal(results['NODE-B1-002'].current_flow_lpm, 18.0);
+        assert.equal(results['NODE-B1-002'].effective_std, 0.03);
     });
 
-    test('Switches to CASCADE_BR06 and applies leak to parent 002 and zero flow to child 004', () => {
-        const engine = new ScenarioEngine();
-        engine.setScenario('CASCADE_BR06');
+    test('NOCTURNAL_SEEP preset forces hour to 02:00 AM', () => {
+        const manager = new NodeStateManager();
+        const engine = new ScenarioEngine(manager);
 
-        const overrides = engine.getOverrides();
-        assert.equal(overrides['NODE-B1-002'].fixed_flow_lpm, 3.52);
-        assert.equal(overrides['NODE-B1-004'].force_zero, true);
+        engine.setPreset('NOCTURNAL_SEEP');
+        assert.equal(engine.getCurrentSimulatedHour(), 2);
     });
 
-    test('Resets cleanly back to BASELINE_NORMAL', () => {
-        const engine = new ScenarioEngine();
-        engine.setScenario('DROUGHT_BR05');
-        assert.equal(engine.activeScenarioKey, 'DROUGHT_BR05');
+    test('Chaos Mode packet loss decision evaluates probabilistically', () => {
+        const manager = new NodeStateManager();
+        const engine = new ScenarioEngine(manager);
 
-        engine.reset();
-        assert.equal(engine.activeScenarioKey, 'BASELINE_NORMAL');
-        assert.deepEqual(engine.getOverrides(), {});
+        assert.equal(engine.shouldDropPacket(), false); // Chaos disabled by default
+
+        engine.toggleChaosMode(); // Enable Chaos Mode (20% drop rate)
+
+        let dropCount = 0;
+        const totalRuns = 1000;
+        for (let i = 0; i < totalRuns; i++) {
+            if (engine.shouldDropPacket()) dropCount++;
+        }
+
+        // 20% rate over 1000 runs should land roughly between 150 and 250 drops
+        assert.ok(dropCount >= 140 && dropCount <= 260, `Expected ~200 drops, got ${dropCount}`);
     });
 });

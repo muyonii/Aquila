@@ -1,6 +1,7 @@
-// src/pages/admin/users/UsersPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { userManager } from './core/UserManager';
+import { Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { adminApi } from '../../../api/admin_api';
+import { rtdbSubscription } from '../../../firebase/rtdb_subscription';
 import { UserFilterCriteria } from './core/UserFilterCriteria';
 
 import UserHeader from './components/UserHeader';
@@ -19,46 +20,84 @@ export default function UsersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const reload = async () => {
-    const res = await userManager.loadAll();
-    setData(res);
+    try {
+      const [usersRes, nodesRes] = await Promise.all([
+        adminApi.getUsers(),
+        adminApi.getNodes()
+      ]);
+
+      const loadedUsers =
+        usersRes?.success && Array.isArray(usersRes.data?.users)
+          ? usersRes.data.users
+          : [];
+      const loadedNodes =
+        nodesRes?.success && Array.isArray(nodesRes.data?.nodes)
+          ? nodesRes.data.nodes
+          : [];
+
+      setData({ users: loadedUsers, nodes: loadedNodes });
+
+      if (selectedUser) {
+        const refreshed = loadedUsers.find((u) => u.user_id === selectedUser.user_id);
+        setSelectedUser(refreshed || null);
+      }
+    } catch (err) {
+      console.warn('[UsersPage] Failed loading users:', err.message);
+    }
   };
 
   useEffect(() => {
     reload();
-  }, []);
+    rtdbSubscription.subscribeConnectionStatus();
+    rtdbSubscription.subscribeAllNodes();
+    rtdbSubscription.subscribeBlackboardHypotheses();
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setSelectedUser(null);
-        setIsAddModalOpen(false);
-      }
+    return () => {
+      rtdbSubscription.unsubscribeAll();
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const kpis = useMemo(() => {
-    return userManager.computeKpis(data.users);
+    const list = data.users;
+    const total = list.length;
+    const residents = list.filter((u) => u.role === 'resident');
+    const boundResidents = residents.filter((u) => u.assigned_node_id);
+    const techs = list.filter((u) => u.role === 'technician').length;
+    const admins = list.filter((u) => u.role === 'admin').length;
+
+    return {
+      total,
+      boundCount: boundResidents.length,
+      unboundCount: residents.length - boundResidents.length,
+      techs,
+      admins
+    };
+  }, [data.users]);
+
+  const pendingApprovals = useMemo(() => {
+    return data.users.filter(
+      (u) => u.role === 'resident' && u.approval_status === 'PENDING'
+    );
   }, [data.users]);
 
   const filteredUsers = useMemo(() => {
     const criteria = new UserFilterCriteria(roleFilter, search);
-    return userManager.filter(data.users, criteria);
+    return data.users.filter((u) => criteria.matches(u));
   }, [data.users, roleFilter, search]);
 
   const handleCreateUser = async (formPayload) => {
     setSubmitting(true);
     try {
-      await userManager.createUser({
+      await adminApi.createUser({
         full_name: formPayload.full_name,
         email: formPayload.email,
         password: formPayload.password,
         role: formPayload.role,
-        assigned_node_id: formPayload.role === 'resident' ? formPayload.assigned_node_id : null
+        assigned_node_id:
+          formPayload.role === 'resident' ? formPayload.assigned_node_id : null
       });
       setIsAddModalOpen(false);
-      reload();
+      await reload();
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to create user account.');
     } finally {
@@ -66,10 +105,28 @@ export default function UsersPage() {
     }
   };
 
+  const handleUpdateUser = async (userId, updatePayload) => {
+    try {
+      await adminApi.updateUser(userId, updatePayload);
+      await reload();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || 'Failed to update user account.');
+    }
+  };
+
+  const handleApproveMeter = async (userId, action = 'approve') => {
+    try {
+      await adminApi.approveResidentMeter(userId, action);
+      await reload();
+    } catch (err) {
+      alert(err.response?.data?.error?.message || 'Failed to update meter approval status.');
+    }
+  };
+
   const handleResetPassword = async (userId) => {
     if (!confirm('Reset password to default: "Password123!"?')) return;
     try {
-      await userManager.resetPassword(userId);
+      await adminApi.updateUser(userId, { password: 'Password123!' });
       alert('Password reset successfully to Password123!');
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to reset password.');
@@ -83,9 +140,9 @@ export default function UsersPage() {
     }
     if (!confirm('Are you sure you want to permanently delete this account?')) return;
     try {
-      await userManager.deleteUser(userId);
+      await adminApi.deleteUser(userId);
       setSelectedUser(null);
-      reload();
+      await reload();
     } catch (err) {
       alert(err.response?.data?.error?.message || 'Failed to delete account.');
     }
@@ -96,6 +153,60 @@ export default function UsersPage() {
       <UserHeader onAddUserClick={() => setIsAddModalOpen(true)} />
 
       <UserKpiCards kpis={kpis} />
+
+      {/* Pending Resident Meter Binding Approval Queue (RA 10173) */}
+      {pendingApprovals.length > 0 && (
+        <div className="bg-amber-50/90 backdrop-blur-xl rounded-2xl p-5 border border-amber-200 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-700" />
+              <h3 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                Pending Resident Meter Approvals ({pendingApprovals.length})
+              </h3>
+            </div>
+            <span className="text-[10.5px] font-mono text-amber-800">
+              RA 10173 Tenant Isolation Guard
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {pendingApprovals.map((req) => (
+              <div
+                key={req.user_id}
+                className="bg-white rounded-xl p-3.5 border border-amber-200/80 flex items-center justify-between gap-3 shadow-2xs"
+              >
+                <div className="min-w-0">
+                  <span className="font-bold text-xs text-slate-900 block truncate">
+                    {req.full_name}
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-500 block truncate">
+                    {req.email} • Meter:{' '}
+                    <strong className="text-slate-800">{req.assigned_node_id}</strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleApproveMeter(req.user_id, 'approve')}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Approve</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApproveMeter(req.user_id, 'reject')}
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 cursor-pointer"
+                    title="Reject Request"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <UserFilterBar
         roleFilter={roleFilter}
@@ -118,8 +229,11 @@ export default function UsersPage() {
 
       <UserInspectorDrawer
         user={selectedUser}
+        nodes={data.nodes}
         adminCount={kpis.admins}
         onClose={() => setSelectedUser(null)}
+        onUpdateUser={handleUpdateUser}
+        onApproveMeter={handleApproveMeter}
         onResetPassword={handleResetPassword}
         onDeleteUser={handleDeleteUser}
       />

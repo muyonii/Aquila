@@ -9,7 +9,6 @@ class WebhookSignatureMiddleware
 {
     public static function verify(): ?string
     {
-        // 1. Inspect server environment and Apache rewritten headers
         $timestamp = $_SERVER['HTTP_X_AQUILA_TIMESTAMP'] 
             ?? $_SERVER['REDIRECT_HTTP_X_AQUILA_TIMESTAMP'] 
             ?? $_SERVER['REDIRECT_REDIRECT_HTTP_X_AQUILA_TIMESTAMP']
@@ -20,7 +19,6 @@ class WebhookSignatureMiddleware
             ?? $_SERVER['REDIRECT_REDIRECT_HTTP_X_AQUILA_SIGNATURE']
             ?? '';
 
-        // 2. Fallback to header inspection via getallheaders / apache_request_headers
         if (empty($timestamp) || empty($signature)) {
             $headers = function_exists('getallheaders') 
                 ? getallheaders() 
@@ -35,41 +33,36 @@ class WebhookSignatureMiddleware
 
         $rawPayload = file_get_contents('php://input');
 
-        // 3. Reject missing headers
         if (empty($timestamp) || empty($signature)) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode([
-                "success" => false,
-                "error" => ["code" => "UNAUTHORIZED", "message" => "Missing webhook signature or timestamp headers."]
-            ], JSON_PRETTY_PRINT);
-            exit;
+            self::jsonError(401, "UNAUTHORIZED", "Missing webhook signature or timestamp headers.");
         }
 
-        // 4. Replay attack protection (5-minute tolerance window)
+        // Replay attack protection (5-minute tolerance window)
         if (abs(time() - (int)$timestamp) > 300) {
-            http_response_code(401);
-            header('Content-Type: application/json');
-            echo json_encode([
-                "success" => false,
-                "error" => ["code" => "TIMESTAMP_EXPIRED", "message" => "Webhook timestamp is stale or out of bounds."]
-            ], JSON_PRETTY_PRINT);
-            exit;
+            self::jsonError(401, "TIMESTAMP_EXPIRED", "Webhook timestamp is stale or out of bounds.");
         }
 
-        // 5. Verify cryptographic HMAC-SHA256 signature
+        // Constant-time cryptographic signature verification
         $expectedSignature = hash_hmac('sha256', $timestamp . '.' . $rawPayload, Security::getWebhookSecret());
 
         if (!hash_equals($expectedSignature, $signature)) {
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode([
-                "success" => false,
-                "error" => ["code" => "INVALID_SIGNATURE", "message" => "Cryptographic signature verification failed."]
-            ], JSON_PRETTY_PRINT);
-            exit;
+            self::jsonError(403, "INVALID_SIGNATURE", "Cryptographic signature verification failed.");
         }
 
         return $rawPayload;
+    }
+
+    private static function jsonError(int $statusCode, string $errorCode, string $message): void
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode([
+            "success" => false,
+            "error" => [
+                "code"    => $errorCode,
+                "message" => $message
+            ]
+        ], JSON_PRETTY_PRINT);
+        exit;
     }
 }

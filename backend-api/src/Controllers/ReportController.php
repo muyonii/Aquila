@@ -18,7 +18,7 @@ class ReportController
         $this->db = Database::getConnection();
     }
 
-    // 1. GET /api/v1/reports/consumption (Equity & Volumetric Breakdown)
+    // 1. GET /api/v1/reports/consumption
     public function getConsumptionReport(): void
     {
         header('Content-Type: application/json');
@@ -34,8 +34,8 @@ class ReportController
                        COALESCE(ROUND(SUM(h.total_volume_liters), 2), 0.0) as total_liters,
                        COALESCE(ROUND(SUM(h.total_volume_liters) / 1000.0, 3), 0.0) as total_cubic_meters,
                        COALESCE(ROUND(MAX(h.peak_flow_rate_lpm), 2), 0.0) as peak_flow_rate_lpm
-                FROM MONITORING_NODE n
-                LEFT JOIN HOURLY_SUMMARY h ON n.node_id = h.node_id AND DATE(h.hour_timestamp) BETWEEN :start AND :end";
+                FROM monitoring_node n
+                LEFT JOIN hourly_summary h ON n.node_id = h.node_id AND DATE(h.hour_timestamp) BETWEEN :start AND :end";
         
         $params = [':start' => $startDate, ':end' => $endDate];
         if (!empty($purok)) {
@@ -48,7 +48,6 @@ class ReportController
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
-        // Calculate Community Mean & RDI Scores
         $totalCommunityLiters = array_reduce($rows, fn($carry, $r) => $carry + (float)$r['total_liters'], 0.0);
         $nodeCount = count($rows) ?: 1;
         $meanDailyLiters = ($totalCommunityLiters / $nodeCount) / $daysCount;
@@ -60,7 +59,6 @@ class ReportController
             $liters = (float)$row['total_liters'];
             $nodeDailyMean = $liters / $daysCount;
             
-            // Relative Deprivation Index (RDI)
             $rdi = $totalCommunityLiters > 0 ? $liters / (($totalCommunityLiters / $nodeCount) + 0.0001) : 1.0;
             $rdi = round($rdi, 3);
 
@@ -101,7 +99,7 @@ class ReportController
         ], JSON_PRETTY_PRINT);
     }
 
-    // 2. GET /api/v1/reports/leaks (NRW Physical Leak Loss & MTTR Report)
+    // 2. GET /api/v1/reports/leaks
     public function getLeakLossReport(): void
     {
         header('Content-Type: application/json');
@@ -111,12 +109,14 @@ class ReportController
         $endDate   = $_GET['end_date'] ?? date('Y-m-d');
 
         $stmt = $this->db->prepare(
-            "SELECT t.incident_id, t.node_id, t.incident_type, t.severity_level, t.status,
-                    t.detected_at, t.resolved_at,
+            "SELECT t.incident_id, t.node_id, t.status, t.detected_at, t.resolved_at,
+                    act.incident_type, act.severity_level,
+                    act.academic_classification, act.academic_term, act.display_name,
                     n.household_label, n.purok_cluster,
                     TIMESTAMPDIFF(MINUTE, t.detected_at, COALESCE(t.resolved_at, NOW())) as duration_minutes
-             FROM INCIDENT_TICKET t
-             JOIN MONITORING_NODE n ON t.node_id = n.node_id
+             FROM incident_ticket t
+             JOIN monitoring_node n ON t.node_id = n.node_id
+             JOIN action_card_templates act ON t.template_id = act.template_id
              WHERE DATE(t.detected_at) BETWEEN :start AND :end
              ORDER BY t.detected_at DESC"
         );
@@ -138,8 +138,7 @@ class ReportController
             if ($inc['incident_type'] === 'CRITICAL_LEAK') {
                 $totalLeaks++;
                 $duration = (int)$inc['duration_minutes'];
-                // Approximation: Average 3.4 L/min leak velocity over duration
-                $loss = $duration * 3.4;
+                $loss = $duration * 3.4; // Average 3.4 L/min leak velocity approximation
                 $totalLossLiters += $loss;
             }
 
@@ -168,7 +167,7 @@ class ReportController
         ], JSON_PRETTY_PRINT);
     }
 
-    // 3. GET /api/v1/reports/maintenance (Technician Performance Report)
+    // 3. GET /api/v1/reports/maintenance
     public function getMaintenanceReport(): void
     {
         header('Content-Type: application/json');
@@ -180,8 +179,8 @@ class ReportController
                     SUM(CASE WHEN t.status = 'CLOSED_VERIFIED' THEN 1 ELSE 0 END) as completed_verified,
                     SUM(CASE WHEN t.status = 'REPAIR_FAILED' THEN 1 ELSE 0 END) as failed_inspections,
                     SUM(CASE WHEN t.status IN ('DISPATCHED', 'PENDING_VERIFICATION') THEN 1 ELSE 0 END) as in_progress
-             FROM USER_ACCOUNT u
-             LEFT JOIN INCIDENT_TICKET t ON u.user_id = t.assigned_technician_id
+             FROM user_account u
+             LEFT JOIN incident_ticket t ON u.user_id = t.assigned_technician_id
              WHERE u.role = 'technician'
              GROUP BY u.user_id, u.full_name
              ORDER BY completed_verified DESC"
@@ -197,11 +196,11 @@ class ReportController
         ], JSON_PRETTY_PRINT);
     }
 
-    // 4. GET /api/v1/reports/export (Memory-Safe Direct CSV File Stream for Excel)
+    // 4. GET /api/v1/reports/export (Supports all 4 export types: consumption, leaks, maintenance, audit)
     public function exportCsv(): void
     {
         RoleMiddleware::enforce(UserRole::ADMIN);
-        $type = $_GET['type'] ?? 'consumption';
+        $type = strtolower($_GET['type'] ?? 'consumption');
 
         $filename = "AQUILA_" . strtoupper($type) . "_REPORT_" . date('Ymd_His') . ".csv";
         header('Content-Type: text/csv; charset=utf-8');
@@ -210,28 +209,56 @@ class ReportController
         $output = fopen('php://output', 'w');
 
         if ($type === 'leaks') {
-            fputcsv($output, ['Incident ID', 'Node ID', 'Household Label', 'Type', 'Severity', 'Status', 'Detected At', 'Resolved At', 'Duration (Mins)']);
+            fputcsv($output, ['Incident ID', 'Node ID', 'Household Label', 'Incident Type', 'Severity', 'Academic Term', 'Display Title', 'Status', 'Detected At', 'Resolved At', 'Duration (Mins)']);
             $stmt = $this->db->query(
-                "SELECT t.incident_id, t.node_id, n.household_label, t.incident_type, t.severity_level, t.status,
-                        t.detected_at, t.resolved_at,
+                "SELECT t.incident_id, t.node_id, n.household_label, act.incident_type, act.severity_level, 
+                        act.academic_term, act.display_name, t.status, t.detected_at, t.resolved_at,
                         TIMESTAMPDIFF(MINUTE, t.detected_at, COALESCE(t.resolved_at, NOW()))
-                 FROM INCIDENT_TICKET t
-                 JOIN MONITORING_NODE n ON t.node_id = n.node_id
+                 FROM incident_ticket t
+                 JOIN monitoring_node n ON t.node_id = n.node_id
+                 JOIN action_card_templates act ON t.template_id = act.template_id
                  ORDER BY t.detected_at DESC"
             );
             while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
                 fputcsv($output, $row);
             }
+        } elseif ($type === 'maintenance') {
+            fputcsv($output, ['Technician ID', 'Technician Name', 'Total Assigned Work Orders', 'Verified Completed Repairs', 'Failed Inspection Repairs', 'In-Progress Tasks']);
+            $stmt = $this->db->query(
+                "SELECT u.user_id, u.full_name,
+                        COUNT(t.incident_id),
+                        SUM(CASE WHEN t.status = 'CLOSED_VERIFIED' THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN t.status = 'REPAIR_FAILED' THEN 1 ELSE 0 END),
+                        SUM(CASE WHEN t.status IN ('DISPATCHED', 'PENDING_VERIFICATION') THEN 1 ELSE 0 END)
+                 FROM user_account u
+                 LEFT JOIN incident_ticket t ON u.user_id = t.assigned_technician_id
+                 WHERE u.role = 'technician'
+                 GROUP BY u.user_id, u.full_name
+                 ORDER BY u.user_id ASC"
+            );
+            while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
+                fputcsv($output, $row);
+            }
+        } elseif ($type === 'audit') {
+            fputcsv($output, ['Log ID', 'Incident ID', 'Actor ID', 'Actor Name', 'Actor Role', 'Action Executed', 'Client IP', 'Remarks', 'Execution Timestamp']);
+            $stmt = $this->db->query(
+                "SELECT a.log_id, COALESCE(a.incident_id, 'N/A'), a.performed_by, u.full_name, u.role, a.action_taken, a.client_ip, COALESCE(a.remarks, ''), a.logged_at
+                 FROM audit_log_entry a
+                 JOIN user_account u ON a.performed_by = u.user_id
+                 ORDER BY a.logged_at DESC"
+            );
+            while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
+                fputcsv($output, $row);
+            }
         } else {
-            // Default: Consumption Report CSV
             fputcsv($output, ['Node ID', 'Household Label', 'Purok Cluster', 'Total Liters', 'Cubic Meters (m3)', 'Peak Flow (L/min)']);
             $stmt = $this->db->query(
                 "SELECT h.node_id, n.household_label, n.purok_cluster,
                         ROUND(SUM(h.total_volume_liters), 2),
                         ROUND(SUM(h.total_volume_liters) / 1000.0, 3),
                         ROUND(MAX(h.peak_flow_rate_lpm), 2)
-                 FROM HOURLY_SUMMARY h
-                 JOIN MONITORING_NODE n ON h.node_id = n.node_id
+                 FROM hourly_summary h
+                 JOIN monitoring_node n ON h.node_id = n.node_id
                  GROUP BY h.node_id, n.household_label, n.purok_cluster
                  ORDER BY h.node_id ASC"
             );

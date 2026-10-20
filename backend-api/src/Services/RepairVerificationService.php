@@ -10,21 +10,55 @@ use Aquila\Domain\ValueObjects\FlowRate;
 
 class RepairVerificationService
 {
-    public function evaluateQuiescentFlow(IncidentTicket $ticket, FlowRate $observedRate, int $elapsedSeconds): IncidentStatus
-    {
-        // 1. Recurrence check: if water bursts >= 1.0 L/min, repair immediately fails
+    /**
+     * Evaluates instantaneous flow against the post-repair verification window.
+     */
+    public function evaluateQuiescentFlow(
+        IncidentTicket $ticket, 
+        FlowRate $observedRate, 
+        int $elapsedSeconds
+    ): IncidentStatus {
+        $windowSeconds = $this->getVerificationWindowSeconds();
+
+        // 1. Recurrence Invariant: If flow spikes >= 1.0 LPM, fail immediately (regardless of elapsed time)
         if ($observedRate->litersPerMinute >= AppConfig::MECHANICAL_SENSOR_FLOOR_LPM) {
-            $ticket->markFailed("Flow recurrent at {$observedRate->litersPerMinute} L/min during observation window.");
+            $ticket->markFailed(
+                sprintf("Recurrent fluid burst of %.2f LPM detected during observation window.", $observedRate->litersPerMinute)
+            );
             return IncidentStatus::REPAIR_FAILED;
         }
 
-        // 2. Success check: flow is quiescent (<=0.05 L/min) AND full 15 minutes have elapsed
-        if ($observedRate->isQuiescent() && $elapsedSeconds >= AppConfig::REPAIR_VERIFICATION_SECONDS) {
+        // 2. Closure Invariant: Flow is quiescent (<= 0.05 LPM) AND countdown has elapsed
+        if ($observedRate->isQuiescent() && $elapsedSeconds >= $windowSeconds) {
             $ticket->verifySuccess();
             return IncidentStatus::CLOSED_VERIFIED;
         }
 
-        // Still observing within the 15-minute window
+        // 3. Persistent Weeping / Unsealed Pipe: Window elapsed, but flow is still leaking above quiescent floor
+        if ($elapsedSeconds >= $windowSeconds && !$observedRate->isQuiescent()) {
+            $ticket->markFailed(
+                sprintf("Conduit unsealed: Flow remained at %.2f LPM after observation window.", $observedRate->litersPerMinute)
+            );
+            return IncidentStatus::REPAIR_FAILED;
+        }
+
+        // 4. Observation In Progress: Countdown is still active
         return IncidentStatus::PENDING_VERIFICATION;
+    }
+
+    /**
+     * Calculates remaining seconds in the verification window (for UI countdown timers)
+     */
+    public function calculateRemainingSeconds(int $elapsedSeconds): int
+    {
+        return max(0, $this->getVerificationWindowSeconds() - $elapsedSeconds);
+    }
+
+    /**
+     * Returns the verification duration (reads from .env for Demo Mode)
+     */
+    public function getVerificationWindowSeconds(): int
+    {
+        return AppConfig::getRepairVerificationSeconds();
     }
 }

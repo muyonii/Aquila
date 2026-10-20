@@ -5,7 +5,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Zero-dependency .env loader for Node.js (with dual-path root & local fallback)
 function loadEnv() {
     const rootEnvPath = path.resolve(__dirname, '../../.env');
     const localEnvPath = path.resolve(__dirname, '../.env');
@@ -47,15 +46,31 @@ export const SETTINGS = {
     WEBHOOK_SECRET: webhookSecret || "aquila_internal_hmac_secret_key_2026",
 
     // Execution Timers & Cadence
-    CYCLE_INTERVAL_MS: 15000,                  // 15-second deliberation cycle (CMP-MAS-01)
+    CYCLE_INTERVAL_MS: 15000,                  // 15-second deliberation cycle
     NETWORK_TIMEOUT_MS: 5000,                  // 5-second HTTP request timeout budget
-    CIRCUIT_BREAKER_TIMEOUT_SEC: 30.0,         // FR-DSS-03 watchdog timeout
+    CIRCUIT_BREAKER_TIMEOUT_SEC: 30.0,         // Watchdog timeout
+    COMPACTION_INTERVAL_MS: parseInt(process.env.SQL_COMPACTION_INTERVAL_MS || '30000', 10), // 30s in demo, 5m in prod
 
-    // Algorithmic Invariants (Mirrors AppConfig.php & .env)
+    // Algorithmic Invariants (Mirrors AppConfig.php & Chapter III)
     LEAK_PROBABILITY_THRESHOLD: 0.40,          // Neyman-Pearson Recall >= 90%
     RDI_DISADVANTAGE_CUTOFF: 0.70,             // Rule BR-04: OECD 70% community mean
-    MUNICIPAL_SHORTAGE_FLOOR_LPD: 50.0,        // Rule BR-05: WHO 50 L/household/day drought override
+    MUNICIPAL_SHORTAGE_FLOOR_LPD: 50.0,        // Rule BR-05: WHO 50 L/household/day drought floor
     MECHANICAL_SENSOR_FLOOR_LPM: 1.0,          // Rule EXC-02: YF-S201 turbine inertia floor
     QUIESCENT_FLOW_FLOOR_LPM: 0.05,            // Rule BR-07: Quiescent pipe seal floor
-    FAIRNESS_WINDOW_SECONDS: 86400             // 24-hour evaluation horizon
+    FAIRNESS_WINDOW_SECONDS: 86400,            // 24-hour evaluation horizon
+    STALE_TELEMETRY_TIMEOUT_SECONDS: 45,       // Node declared offline after 45s of silence
+    ZERO_FLOW_HANGOVER_SECONDS: 30,            // Hysteresis window for transient packet drops
+    MASS_BALANCE_TOLERANCE_LPM: 1.5,           // Permissible discrepancy between parent and children
+    PERSONAL_DEFICIT_THRESHOLD: parseFloat(process.env.PERSONAL_DEFICIT_THRESHOLD || '0.60')
 };
+
+export function getCurrentSystemHour() {
+    const tz = process.env.APP_TIMEZONE || 'Asia/Manila';
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        hour12: false,
+        timeZone: tz
+    });
+    const hourStr = formatter.format(new Date());
+    return parseInt(hourStr === '24' ? '0' : hourStr, 10);
+}

@@ -1,61 +1,84 @@
 /**
- * Pre-packaged Hydraulic & Operational Test Scenarios
+ * ScenarioPresets
+ *
+ * Predefined physical event presets for live thesis demonstrations and stress testing.
  */
 export const SCENARIO_PRESETS = {
-    BASELINE_NORMAL: {
-        name: "Baseline Normal Operations",
-        description: "Standard diurnal household demand curves across all community nodes.",
+    // Preset 1: Standard 24h diurnal demand profile across all households
+    NORMAL_DIURNAL: {
+        id: 'NORMAL_DIURNAL',
+        key: '1',
+        title: 'Normal Diurnal Demand',
+        description: 'Standard household water usage (morning peak, midday lull, evening peak, quiet night).',
         overrides: {}
     },
-    CRITICAL_LEAK: {
-        name: "P1 Critical Sub-surface Pipe Rupture",
-        description: "Sustained 3.52 LPM flat variance rupture on NODE-B1-002.",
+
+    // Preset 2: Catastrophic pipe burst on a single household branch (P1)
+    SUDDEN_BURST: {
+        id: 'SUDDEN_BURST',
+        key: '2',
+        title: 'Sudden Pipe Rupture (Node B1-002)',
+        description: 'Simulates an instant 18.0 LPM pipe rupture with flat laminar variance on NODE-B1-002.',
         overrides: {
-            'NODE-B1-002': { fixed_flow_lpm: 3.52, std: 0.03 }
+            'NODE-B1-002': { flow_rate_lpm: 18.0, effective_std: 0.03, lock_flow: true }
         }
     },
-    EQUITY_DEFICIT: {
-        name: "P2 Rawlsian Distribution Inequity",
-        description: "High upstream consumption starves terminal node NODE-B1-008 (RDI < 0.70).",
+
+    // Preset 3: Topological Mass Balance Discrepancy (Mainline Pipe Loss)
+    MAINLINE_CONDUIT_LOSS: {
+        id: 'MAINLINE_CONDUIT_LOSS',
+        key: '3',
+        title: 'Mainline Pipe Loss (Parent B1-001 vs Children)',
+        description: 'Parent B1-001 supplies 18.0 LPM, but downstream children consume only 6.0 LPM (12.0 LPM underground loss).',
         overrides: {
-            'NODE-B1-008': { force_zero: true }
+            'NODE-B1-001': { flow_rate_lpm: 18.0, effective_std: 0.04, lock_flow: true },
+            'NODE-B1-002': { flow_rate_lpm: 3.5, effective_std: 0.25, lock_flow: true },
+            'NODE-B1-003': { flow_rate_lpm: 2.5, effective_std: 0.30, lock_flow: true }
         }
     },
-    CASCADE_BR06: {
-        name: "Rule BR-06 Upstream Causal Cascade",
-        description: "Rupture on parent NODE-B1-002 starves child NODE-B1-004 (Tests downstream alarm suppression).",
+
+    // Preset 4: Zero-Flow Invariant Violation (Running Toilet Flapper > 60 min)
+    RUNNING_TOILET: {
+        id: 'RUNNING_TOILET',
+        key: '4',
+        title: 'Running Toilet Flapper (Node B1-005)',
+        description: 'Continuous unbroken 1.8 LPM trickle on NODE-B1-005 lasting past the 60-minute duration ceiling.',
         overrides: {
-            'NODE-B1-002': { fixed_flow_lpm: 3.52, std: 0.03 },
-            'NODE-B1-004': { force_zero: true }
+            'NODE-B1-005': { flow_rate_lpm: 1.8, effective_std: 0.02, lock_flow: true }
         }
     },
-    DROUGHT_BR05: {
-        name: "Rule BR-05 Municipal Shortage Override",
-        description: "System-wide supply drop below 50 LPD WHO threshold (Suspends individual equity complaints).",
+
+    // Preset 5: IWA Minimum Night Flow Anomaly (02:00 AM Nocturnal Seepage)
+    NOCTURNAL_SEEP: {
+        id: 'NOCTURNAL_SEEP',
+        key: '5',
+        title: 'Nocturnal Minimum Night Flow Leak (Node B1-003)',
+        description: 'Forces simulated hour to 02:00 AM; NODE-B1-003 maintains an elevated 2.2 LPM laminar draw.',
+        forced_hour: 2,
         overrides: {
-            'NODE-B1-002': { fixed_flow_lpm: 0.15 },
-            'NODE-B1-003': { fixed_flow_lpm: 0.15 },
-            'NODE-B1-004': { fixed_flow_lpm: 0.10 },
-            'NODE-B1-005': { fixed_flow_lpm: 0.10 },
-            'NODE-B1-006': { fixed_flow_lpm: 0.10 },
-            'NODE-B1-007': { fixed_flow_lpm: 0.10 },
-            'NODE-B1-008': { fixed_flow_lpm: 0.05 },
-            'NODE-B1-009': { fixed_flow_lpm: 0.05 },
-            'NODE-B1-010': { fixed_flow_lpm: 0.05 }
+            'NODE-B1-003': { flow_rate_lpm: 2.2, effective_std: 0.03, lock_flow: true }
         }
     },
-    REPAIR_SUCCESS: {
-        name: "Rule BR-07 Repair Verification (Quiet Seal Success)",
-        description: "Flow stays <= 0.05 LPM for 15 minutes to trigger automated ticket closure.",
+
+    // Preset 6: Rawlsian Water Equity Deficit (Elevated Terminal Node Starved)
+    FAIRNESS_DEFICIT: {
+        id: 'FAIRNESS_DEFICIT',
+        key: '6',
+        title: 'Rawlsian Water Equity Deficit (Node B1-008)',
+        description: 'Terminal Node B1-008 receives only 0.3 LPM while lower homes consume 8.0 LPM.',
         overrides: {
-            'NODE-B1-002': { fixed_flow_lpm: 0.02, std: 0.005 }
+            'NODE-B1-002': { flow_rate_lpm: 8.0, effective_std: 0.35, lock_flow: true },
+            'NODE-B1-004': { flow_rate_lpm: 8.0, effective_std: 0.35, lock_flow: true },
+            'NODE-B1-008': { flow_rate_lpm: 0.3, effective_std: 0.40, lock_flow: true }
         }
     },
-    REPAIR_FAILED: {
-        name: "Rule BR-07 Repair Verification (Recurrent Burst Failure)",
-        description: "Flow bursts to 3.20 LPM during 15-min observation window to trigger repair failure.",
-        overrides: {
-            'NODE-B1-002': { fixed_flow_lpm: 3.20, std: 0.04 }
-        }
+
+    // Preset 7: Town-Wide Drought / Reservoir Shortage (BR-05 Shortage Override)
+    MUNICIPAL_DROUGHT: {
+        id: 'MUNICIPAL_DROUGHT',
+        key: '7',
+        title: 'Municipal Drought / Reservoir Shortage',
+        description: 'Town-wide water supply drops below WHO 50 LPD floor; triggers BR-05 shortage override.',
+        global_multiplier: 0.08
     }
 };

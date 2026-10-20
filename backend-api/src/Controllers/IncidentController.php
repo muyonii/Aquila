@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace Aquila\Controllers;
 
-use Aquila\Utils\Uuid;
 use Aquila\Config\AppConfig;
 use Aquila\Config\Database;
 use Aquila\Domain\Entities\IncidentTicket;
@@ -15,7 +14,9 @@ use Aquila\Infrastructure\Repositories\MySQLIncidentRepository;
 use Aquila\Middleware\JwtAuthMiddleware;
 use Aquila\Middleware\RoleMiddleware;
 use Aquila\Services\AuditLogger;
+use Aquila\Services\NotificationDispatchService;
 use Aquila\Services\RepairVerificationService;
+use Aquila\Utils\Uuid;
 use PDO;
 
 class IncidentController
@@ -44,30 +45,32 @@ class IncidentController
     {
         $user = JwtAuthMiddleware::authenticate();
         $role = $user['role'];
+        $activeOnly = isset($_GET['active']) && ($_GET['active'] === '1' || $_GET['active'] === 'true');
 
-        if ($role === UserRole::TECHNICIAN->value) {
-            $stmt = $this->db->prepare(
-                "SELECT t.*, n.household_label, n.location_name, n.purok_cluster 
-                 FROM INCIDENT_TICKET t
-                 JOIN MONITORING_NODE n ON t.node_id = n.node_id 
-                 WHERE t.assigned_technician_id = :id
-                 ORDER BY FIELD(t.status, 'DISPATCHED', 'PENDING_VERIFICATION', 'REPAIR_FAILED', 'OPEN', 'CLOSED_VERIFIED', 'CANCELLED'), t.detected_at DESC"
-            );
-            $stmt->execute([':id' => $user['user_id']]);
-        } elseif ($role === UserRole::RESIDENT->value) {
-            $stmt = $this->db->prepare("SELECT * FROM INCIDENT_TICKET WHERE node_id = :id ORDER BY detected_at DESC");
-            $stmt->execute([':id' => (string)($user['assigned_node_id'] ?? '')]);
-        } else {
-            $stmt = $this->db->query(
-                "SELECT t.*, n.household_label, n.location_name, n.purok_cluster, u.full_name AS assigned_technician_name
-                 FROM INCIDENT_TICKET t 
-                 JOIN MONITORING_NODE n ON t.node_id = n.node_id
-                 LEFT JOIN USER_ACCOUNT u ON t.assigned_technician_id = u.user_id
-                 ORDER BY FIELD(t.status, 'OPEN', 'DISPATCHED', 'PENDING_VERIFICATION', 'REPAIR_FAILED', 'CLOSED_VERIFIED', 'CANCELLED'), t.detected_at DESC"
-            );
+        if ($activeOnly && $role === UserRole::ADMIN->value) {
+            $stmt = $this->db->query("SELECT * FROM v_active_incident_queue ORDER BY detected_at DESC");
+            $this->json(200, ["success" => true, "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
         }
 
-        $this->json(200, ["success" => true, "data" => $stmt->fetchAll()]);
+        $baseSql = "SELECT t.*, act.incident_type, act.severity_level, act.academic_classification, 
+                           act.academic_term, act.display_name, act.action_card_title, act.action_directive,
+                           n.household_label, n.location_name, n.purok_cluster, u.full_name AS assigned_technician_name
+                    FROM incident_ticket t 
+                    JOIN monitoring_node n ON t.node_id = n.node_id
+                    JOIN action_card_templates act ON t.template_id = act.template_id
+                    LEFT JOIN user_account u ON t.assigned_technician_id = u.user_id";
+
+        if ($role === UserRole::TECHNICIAN->value) {
+            $stmt = $this->db->prepare($baseSql . " WHERE t.assigned_technician_id = :id ORDER BY FIELD(t.status, 'DISPATCHED', 'PENDING_VERIFICATION', 'REPAIR_FAILED', 'OPEN', 'CLOSED_VERIFIED', 'CANCELLED'), t.detected_at DESC");
+            $stmt->execute([':id' => $user['user_id']]);
+        } elseif ($role === UserRole::RESIDENT->value) {
+            $stmt = $this->db->prepare($baseSql . " WHERE t.node_id = :id ORDER BY t.detected_at DESC");
+            $stmt->execute([':id' => (string)($user['assigned_node_id'] ?? '')]);
+        } else {
+            $stmt = $this->db->query($baseSql . " ORDER BY FIELD(t.status, 'OPEN', 'REPAIR_FAILED', 'DISPATCHED', 'PENDING_VERIFICATION', 'CLOSED_VERIFIED', 'CANCELLED'), t.detected_at DESC");
+        }
+
+        $this->json(200, ["success" => true, "data" => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
     }
 
     // 2. GET /api/v1/incidents/{id}
@@ -75,10 +78,14 @@ class IncidentController
     {
         JwtAuthMiddleware::authenticate();
         $stmt = $this->db->prepare(
-            "SELECT t.*, n.household_label, n.location_name, n.purok_cluster, n.latitude, n.longitude, u.full_name AS assigned_technician_name
-             FROM INCIDENT_TICKET t 
-             JOIN MONITORING_NODE n ON t.node_id = n.node_id
-             LEFT JOIN USER_ACCOUNT u ON t.assigned_technician_id = u.user_id 
+            "SELECT t.*, act.incident_type, act.severity_level, act.academic_classification, 
+                    act.academic_term, act.display_name, act.action_card_title, act.action_directive,
+                    n.household_label, n.location_name, n.purok_cluster, n.latitude, n.longitude, 
+                    u.full_name AS assigned_technician_name
+             FROM incident_ticket t 
+             JOIN monitoring_node n ON t.node_id = n.node_id
+             JOIN action_card_templates act ON t.template_id = act.template_id
+             LEFT JOIN user_account u ON t.assigned_technician_id = u.user_id 
              WHERE t.incident_id = :id LIMIT 1"
         );
         $stmt->execute([':id' => $id]);
@@ -88,56 +95,75 @@ class IncidentController
             $this->json(404, ["success" => false, "error" => ["code" => "NOT_FOUND", "message" => "Incident not found."]]);
         }
 
-        $audits = $this->db->prepare(
-            "SELECT a.log_id, a.action_taken, a.client_ip, a.remarks, a.logged_at, u.full_name AS performed_by_name
-             FROM AUDIT_LOG_ENTRY a 
-             JOIN USER_ACCOUNT u ON a.performed_by = u.user_id
-             WHERE a.incident_id = :id ORDER BY a.logged_at ASC"
+        $histStmt = $this->db->prepare(
+            "SELECT h.*, u.full_name AS changed_by_name
+             FROM incident_status_history h
+             LEFT JOIN user_account u ON h.changed_by_user_id = u.user_id
+             WHERE h.incident_id = :id
+             ORDER BY h.created_at ASC"
         );
-        $audits->execute([':id' => $id]);
+        $histStmt->execute([':id' => $id]);
+        $history = $histStmt->fetchAll();
 
-        $this->json(200, ["success" => true, "data" => ["incident" => $ticket, "audit_trail" => $audits->fetchAll()]]);
+        $this->json(200, [
+            "success" => true, 
+            "data" => [
+                "incident"       => $ticket, 
+                "status_history" => $history
+            ]
+        ]);
     }
 
     // 3. POST /api/v1/incidents (Manual Citizen Complaint Entry)
     public function createManualIncident(): void
     {
-        $admin = RoleMiddleware::enforce(UserRole::ADMIN);
+        $user = JwtAuthMiddleware::authenticate();
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
-        $nodeId = trim((string)($data['node_id'] ?? ''));
+        $nodeId = trim((string)($data['node_id'] ?? ($user['assigned_node_id'] ?? '')));
         $notes = trim((string)($data['complaint_notes'] ?? 'Citizen walk-in complaint reported at BAWASA hall.'));
 
         if (empty($nodeId)) {
             $this->json(400, ["success" => false, "error" => ["code" => "MISSING_NODE", "message" => "node_id is required."]]);
         }
 
-        $nodeExists = $this->db->prepare("SELECT COUNT(*) FROM MONITORING_NODE WHERE node_id = :id");
+        $nodeExists = $this->db->prepare("SELECT COUNT(*) FROM monitoring_node WHERE node_id = :id");
         $nodeExists->execute([':id' => $nodeId]);
         if ((int)$nodeExists->fetchColumn() === 0) {
             $this->json(404, ["success" => false, "error" => ["code" => "NODE_NOT_FOUND", "message" => "Node does not exist."]]);
         }
 
-        $severity = IncidentSeverity::tryFrom((string)($data['severity_level'] ?? 'P1')) ?? IncidentSeverity::P1;
+        $severityStr = (string)($data['severity_level'] ?? 'P1');
+        $severity = IncidentSeverity::tryFrom($severityStr) ?? IncidentSeverity::P1;
+        $incidentType = (string)($data['incident_type'] ?? 'CRITICAL_LEAK');
+
+        $tplStmt = $this->db->prepare(
+            "SELECT template_id FROM action_card_templates 
+             WHERE incident_type = :type AND severity_level = :sev LIMIT 1"
+        );
+        $tplStmt->execute([':type' => $incidentType, ':sev' => $severity->value]);
+        $templateId = (int)($tplStmt->fetchColumn() ?: 1);
+
         $incidentId = Uuid::v4();
 
         $ticket = new IncidentTicket(
             incidentId: $incidentId,
             nodeId: $nodeId,
-            incidentType: (string)($data['incident_type'] ?? 'CRITICAL_LEAK'),
+            templateId: $templateId,
             severityLevel: $severity,
             detectedAt: date('Y-m-d H:i:s'),
-            verifiedAt: null,
-            resolvedAt: null,
-            assignedTechnicianId: null,
             status: IncidentStatus::OPEN,
-            repairNotes: "[Manual Complaint]: " . $notes,
-            actionCardTitle: 'Citizen Walk-in Complaint',
-            actionDirective: "Inspect {$nodeId}. Resident reported: {$notes}"
+            repairNotes: "[Manual Complaint]: " . $notes
         );
         
-        $this->incidentRepo->save($ticket);
+        $actorId = (int)($user['user_id'] ?? 1);
+        $this->incidentRepo->save($ticket, $actorId);
 
-        AuditLogger::log('INCIDENT_MANUALLY_CREATED', (int)$admin['user_id'], $ticket->incidentId, "Manual report on {$nodeId}: {$notes}");
+        if ($severity === IncidentSeverity::P1) {
+            $notifService = new NotificationDispatchService($this->db);
+            $notifService->notifyBurstAlert($ticket);
+        }
+
+        AuditLogger::log('INCIDENT_MANUALLY_CREATED', $actorId, $ticket->incidentId, "Manual report on {$nodeId}: {$notes}");
 
         $this->json(201, [
             "success" => true, 
@@ -156,7 +182,7 @@ class IncidentController
         $admin = RoleMiddleware::enforce(UserRole::ADMIN);
         $techId = (int)(json_decode(file_get_contents('php://input'), true)['technician_id'] ?? 0);
 
-        $techCheck = $this->db->prepare("SELECT role FROM USER_ACCOUNT WHERE user_id = :id");
+        $techCheck = $this->db->prepare("SELECT role FROM user_account WHERE user_id = :id");
         $techCheck->execute([':id' => $techId]);
         if ($techCheck->fetchColumn() !== UserRole::TECHNICIAN->value) {
             $this->json(400, ["success" => false, "error" => ["code" => "INVALID_TECHNICIAN", "message" => "Assigned user is not an active technician."]]);
@@ -173,13 +199,16 @@ class IncidentController
             $this->json(400, ["success" => false, "error" => ["code" => "CANNOT_DISPATCH", "message" => $e->getMessage()]]);
         }
 
-        $this->incidentRepo->save($ticket);
+        $this->incidentRepo->save($ticket, (int)$admin['user_id']);
+
+        $notifService = new NotificationDispatchService($this->db);
+        $notifService->notifyTechnicianDispatched($ticket, $techId);
 
         AuditLogger::log('TICKET_DISPATCHED', (int)$admin['user_id'], $id, "Assigned to technician ID {$techId}");
         $this->json(200, ["success" => true, "data" => ["incident_id" => $id, "status" => "DISPATCHED", "assigned_to" => $techId]]);
     }
 
-    // 5. PATCH /api/v1/incidents/{id}/cancel (False Alarm Dismissal)
+    // 5. PATCH /api/v1/incidents/{id}/cancel
     public function cancelIncident(string $id): void
     {
         $admin = RoleMiddleware::enforce(UserRole::ADMIN);
@@ -196,7 +225,7 @@ class IncidentController
             $this->json(400, ["success" => false, "error" => ["code" => "CANNOT_CANCEL", "message" => $e->getMessage()]]);
         }
 
-        $this->incidentRepo->save($ticket);
+        $this->incidentRepo->save($ticket, (int)$admin['user_id']);
 
         AuditLogger::log('INCIDENT_CANCELLED', (int)$admin['user_id'], $id, "Dismissed: {$reason}");
         $this->json(200, ["success" => true, "data" => ["incident_id" => $id, "status" => "CANCELLED", "message" => "Incident dismissed."]]);
@@ -226,7 +255,15 @@ class IncidentController
         $newStatus = $this->verificationService->evaluateQuiescentFlow($ticket, new FlowRate($flowRate), $elapsed);
 
         if ($newStatus !== IncidentStatus::PENDING_VERIFICATION) {
-            $this->incidentRepo->save($ticket);
+            $this->incidentRepo->save($ticket, 1);
+
+            $notifService = new NotificationDispatchService($this->db);
+            if ($newStatus === IncidentStatus::CLOSED_VERIFIED) {
+                $notifService->notifyRepairSuccess($ticket);
+            } elseif ($newStatus === IncidentStatus::REPAIR_FAILED) {
+                $notifService->notifyRepairFailed($ticket);
+            }
+
             AuditLogger::log('REPAIR_' . $newStatus->value, 1, $id, "Verification outcome: {$newStatus->value}");
             $this->json(200, ["success" => true, "data" => ["status" => $newStatus->value, "observed_lpm" => $flowRate]]);
         }
@@ -235,7 +272,7 @@ class IncidentController
             "success" => true, 
             "data" => [
                 "status"            => "PENDING_VERIFICATION", 
-                "remaining_seconds" => max(0, AppConfig::REPAIR_VERIFICATION_SECONDS - $elapsed), 
+                "remaining_seconds" => $this->verificationService->calculateRemainingSeconds($elapsed), 
                 "observed_lpm"      => $flowRate
             ]
         ]);

@@ -8,9 +8,8 @@ use RuntimeException;
 class Security
 {
     public const JWT_ALGORITHM = 'HS256';
-    public const JWT_EXPIRATION_SECONDS = 900; // 15 minutes (RFC 7519)
+    public const JWT_EXPIRATION_SECONDS = 900; // 15 minutes (RFC 7519 Access Token)
 
-    // Known development defaults (strictly rejected when APP_ENV=production)
     private const DEV_JWT_FALLBACK = 'aquila_super_secret_jwt_key_bpsu_2026';
     private const DEV_WEBHOOK_FALLBACK = 'aquila_internal_hmac_secret_key_2026';
 
@@ -56,5 +55,13 @@ class Security
         }
 
         return $secret;
+    }
+
+    /**
+     * Generates a high-entropy cryptographically secure random token (hex string)
+     */
+    public static function generateSecureToken(int $bytes = 32): string
+    {
+        return bin2hex(random_bytes($bytes));
     }
 }

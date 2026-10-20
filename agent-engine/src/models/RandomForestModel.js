@@ -11,11 +11,6 @@ const __dirname = path.dirname(__filename);
  *
  * Evaluates the 5-feature hydraulic vector using a 50-tree Random Forest ensemble:
  *   [0: flow_rate_lpm, 1: rolling_mean_5m, 2: effective_std, 3: duration_minutes, 4: hour_of_day]
- *
- * Implements:
- *   - Sub-millisecond in-memory AST decision path traversal
- *   - Mechanical turbine inertia floor clamp (EXC-02: < 1.0 LPM -> 0.05)
- *   - Fast-track acoustic continuity heuristic (q >= 2.5 LPM, std <= 0.15, dur >= 0.5m)
  */
 export class RandomForestModel {
     static forestData = null;
@@ -57,9 +52,6 @@ export class RandomForestModel {
     /**
      * Evaluates a single decision tree recursively on the feature vector.
      * @private
-     * @param {Object} node - AST node (split or leaf)
-     * @param {number[]} features - [q, mean, std, dur_min, hour]
-     * @returns {number} Leaf leak probability
      */
     static _evaluateTree(node, features) {
         if (!node) return 0.0;
@@ -76,7 +68,7 @@ export class RandomForestModel {
     }
 
     /**
-     * Predicts subterranean pipe rupture probability.
+     * Predicts pipe rupture probability.
      *
      * @param {number[]} features - [flow_rate_lpm, rolling_mean, effective_std, duration_minutes, hour_of_day]
      * @returns {number} Probability of leak between 0.000 and 1.000

@@ -2,68 +2,52 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { NodeStateManager } from '../../src/core/NodeStateManager.js';
 
-describe('NodeStateManager (Odometer & State Wrapper)', () => {
-
-    test('Initializes 10 topology nodes matching database topology', () => {
+describe('NodeStateManager (Odometer Math & Hardware Fallback)', () => {
+    test('Initializes 9 nodes matching synthetic configuration', () => {
         const manager = new NodeStateManager();
         const states = manager.getAllStates();
-        const nodeIds = Object.keys(states);
-
-        assert.equal(nodeIds.length, 10);
-        assert.ok(nodeIds.includes('NODE-B1-001'));
-        assert.ok(nodeIds.includes('NODE-B1-010'));
+        assert.equal(Object.keys(states).length, 9);
+        assert.equal(states['NODE-B1-001'].is_physical, true);
+        assert.equal(states['NODE-B1-002'].is_physical, false);
     });
 
-    test('Physical Hardware Bypass Guard: NODE-B1-001 is physical, NODE-B1-002 is simulated', () => {
+    test('Accumulates odometer correctly: ΔL = (Q / 60) * elapsedSeconds', () => {
         const manager = new NodeStateManager();
-        
-        assert.equal(manager.isPhysicalHardware('NODE-B1-001'), true);
-        assert.equal(manager.isPhysicalHardware('NODE-B1-002'), false);
+        const initialOdometer = manager.getState('NODE-B1-002').cumulative_liters;
+
+        // Flow at 12.0 LPM for 15 seconds = 3.0 Liters added
+        const updated = manager.updateNodeFlow('NODE-B1-002', 12.0, 0.05, 15);
+
+        assert.equal(updated.current_flow_lpm, 12.0);
+        assert.equal(updated.cumulative_liters, parseFloat((initialOdometer + 3.0).toFixed(2)));
+        assert.equal(updated.packet_sequence, 2);
     });
 
-    test('Monotonic Cumulative Volume Integration: V_k = V_{k-1} + (Q * 0.25)', () => {
+    test('Hardware Fallback Watchdog engages when ESP32 goes silent for > 30s', () => {
         const manager = new NodeStateManager();
-        const initialVol = manager.states['NODE-B1-002'].cumulative_liters;
-        
-        // Simulate a 15-second tick with Q = 4.0 LPM -> delta = 4.0 * (15/60) = 1.0 Liter
-        const payload = manager.updateTick('NODE-B1-002', 4.0);
+        const node1 = manager.getState('NODE-B1-001');
 
-        assert.equal(payload.cumulative_liters, initialVol + 1.0);
-        assert.equal(payload.packet_sequence, 2);
+        // Simulate physical hardware transmitting
+        manager.registerHardwareHeartbeat('NODE-B1-001', {
+            flow_rate_lpm: 4.5,
+            cumulative_liters: 2000.0,
+            packet_sequence: 99
+        });
+
+        assert.equal(node1.is_hardware_active, true);
+
+        // Manually backdate heartbeat timestamp to 35 seconds ago
+        node1.last_hardware_packet_at = Date.now() - 35000;
+
+        manager.evaluateHardwareFallback(30000);
+
+        // Watchdog must disengage hardware mode and enable virtual fallback
+        assert.equal(node1.is_hardware_active, false);
     });
 
-    test('7-Field Telemetry Contract Compliance (DR-01)', () => {
+    test('Reset Odometer properly handles simulated meter swap', () => {
         const manager = new NodeStateManager();
-        const payload = manager.updateTick('NODE-B1-002', 3.5);
-
-        const requiredFields = [
-            'node_id',
-            'packet_sequence',
-            'timestamp',
-            'flow_rate_lpm',
-            'cumulative_liters',
-            'battery_voltage',
-            'is_simulated'
-        ];
-
-        for (const field of requiredFields) {
-            assert.ok(field in payload, `Missing required 7-field contract key: ${field}`);
-            assert.notEqual(payload[field], null);
-            assert.notEqual(payload[field], undefined);
-        }
-
-        assert.equal(payload.node_id, 'NODE-B1-002');
-        assert.equal(payload.is_simulated, true);
-        assert.equal(payload.flow_rate_lpm, 3.5);
-    });
-
-    test('Node Status Modification (ACTIVE, MAINTENANCE, FAULT)', () => {
-        const manager = new NodeStateManager();
-        
-        manager.setNodeStatus('NODE-B1-005', 'MAINTENANCE');
-        assert.equal(manager.states['NODE-B1-005'].status, 'MAINTENANCE');
-
-        manager.setNodeStatus('NODE-B1-005', 'FAULT');
-        assert.equal(manager.states['NODE-B1-005'].status, 'FAULT');
+        manager.resetOdometer('NODE-B1-003', 15.0);
+        assert.equal(manager.getState('NODE-B1-003').cumulative_liters, 15.0);
     });
 });

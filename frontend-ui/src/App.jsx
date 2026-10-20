@@ -7,17 +7,17 @@ export default function App() {
   const { restoreSession, logout } = useAuthStore();
 
   useEffect(() => {
-    // 1. Initial boot session validation
+    // 1. Rehydrate JWT session from LocalStorage on initial load
     restoreSession();
 
-    // 2. Multi-Tab Logout Sync: Listens for token removal in other tabs
+    // 2. Multi-Tab Sync: If user logs out in another browser tab, log out here
     const handleStorageChange = (e) => {
       if (e.key === 'aquila_token' && !e.newValue) {
         logout();
       }
     };
 
-    // 3. Prevent bfcache (Back-Forward Cache) restoring private screens after logout
+    // 3. Prevent Back-Forward Cache (bfcache) from showing private screens after logout
     const handlePageShow = (e) => {
       if (e.persisted) {
         const token = localStorage.getItem('aquila_token');
@@ -39,8 +39,8 @@ export default function App() {
   }, [restoreSession, logout]);
 
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <AppRoutes />
+  </BrowserRouter>
   );
 }

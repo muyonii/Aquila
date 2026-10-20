@@ -1,31 +1,106 @@
+import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import { Droplets, LogIn } from 'lucide-react';
+import { Droplets, ArrowRight } from 'lucide-react';
+import { useAuthStore } from '../stores/useAuthStore';
 
 export default function PublicLayout() {
+  const { isAuthenticated, user } = useAuthStore();
+
+  const portalTarget =
+    isAuthenticated && user
+      ? user.role === 'admin'
+        ? '/dashboard'
+        : user.role === 'technician'
+        ? '/tasks'
+        : '/usage'
+      : '/login';
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 font-bold text-sky-600 text-lg">
-            <Droplets className="w-6 h-6 text-sky-500" />
-            <span>AQUILA <span className="text-xs font-normal text-slate-500 uppercase tracking-wider">BAWASA</span></span>
-          </Link>
-          <Link
-            to="/login"
-            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm"
-          >
-            <LogIn className="w-4 h-4" />
-            <span>Sign In</span>
+    <div className="public-shell min-h-screen flex flex-col bg-white">
+      <header className="public-header">
+        <Link to="/" className="brand-mark" aria-label="AQUILA home">
+          <Droplets className="w-5 h-5 text-[#0284c7]" />
+          <span>AQUILA</span>
+        </Link>
+
+        <nav className="public-nav" aria-label="Main navigation">
+          <a href="/#home">Home</a>
+          <a href="/#about">About</a>
+          <a href="/#how-it-works">How it Works</a>
+          <a href="/#features">Features</a>
+        </nav>
+
+        <div className="header-actions">
+          <span
+            className="header-status"
+            aria-label="System status indicator"
+          />
+
+          <Link to={portalTarget} className="header-login">
+            <span>
+              {isAuthenticated ? 'Open Dashboard' : 'Open Portal'}
+            </span>
+            <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="public-main flex-1">
         <Outlet />
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <p>AQUILA Distributed Multi-Agent Decision Support System &copy; 2026 BPSU BSCS</p>
+      <footer className="public-footer">
+        <div className="footer-main">
+          <div className="footer-brand">
+            <Link to="/" className="footer-logo">
+              AQUILA
+            </Link>
+
+            <p>
+              Smart Water Management Platform
+              <br />
+              for Barangay Water and Sanitation
+              <br />
+              Associations.
+            </p>
+
+            <strong>RA 10173 Data Privacy Compliant</strong>
+          </div>
+
+          <div className="footer-column">
+            <h3>Navigation</h3>
+            <a href="/#home">Home</a>
+            <a href="/#about">About</a>
+            <a href="/#how-it-works">How it Works</a>
+            <a href="/#features">Features</a>
+            <Link to="/login">Portal Login</Link>
+          </div>
+
+          <div className="footer-column footer-contact">
+            <h3>Contact &amp; Support</h3>
+
+            <strong>LOCATION</strong>
+            <p>Barangay Hall Annex, Bataan</p>
+
+            <strong>HOTLINE</strong>
+            <p>(046) 555-0192</p>
+
+            <strong>EMERGENCY</strong>
+            <p>0917 888 2340</p>
+
+            <strong>OFFICE HOURS</strong>
+            <p>Mon–Sat, 7AM–5PM</p>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <span>
+            © 2026 AQUILA Project Team. College of Computer Studies.
+          </span>
+          <span>
+            Data Privacy Act RA 10173 · All household data is private.
+          </span>
+        </div>
       </footer>
     </div>
   );

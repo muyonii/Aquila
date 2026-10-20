@@ -6,14 +6,9 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Aquila\Config\Database;
 use Aquila\Config\Env;
 use Aquila\Config\Security;
-use Aquila\Domain\Entities\IncidentTicket;
-use Aquila\Domain\Enums\IncidentSeverity;
-use Aquila\Domain\Enums\IncidentStatus;
-use Aquila\Domain\Enums\UserRole;
 use Aquila\Infrastructure\Repositories\MySQLIncidentRepository;
 use Aquila\Services\AuditLogger;
 use Aquila\Services\IncidentDebouncer;
-use Aquila\Utils\Uuid;
 use Firebase\JWT\JWT;
 
 Env::load();
@@ -49,115 +44,91 @@ $logId = (int)$db->lastInsertId();
 
 // Test 1: Attempt an UPDATE statement (Trigger must throw SQLSTATE 45000)
 try {
-    $db->prepare("UPDATE AUDIT_LOG_ENTRY SET remarks = 'Hacked Remarks' WHERE log_id = :id")
+    $db->prepare("UPDATE audit_log_entry SET remarks = 'Hacked Remarks' WHERE log_id = :id")
        ->execute([':id' => $logId]);
     report("INV-06: UPDATE Prevention Trigger", false, "Trigger failed to block UPDATE query!");
 } catch (\PDOException $e) {
     $blocked = str_contains($e->getMessage(), '45000') || str_contains($e->getMessage(), 'IMMUTABLE');
-    report(
-        "INV-06: UPDATE Prevention Trigger", 
-        $blocked, 
-        "Database trigger blocked update: {$e->getMessage()}"
-    );
+    report("INV-06: UPDATE Prevention Trigger", $blocked, "Blocked: {$e->getMessage()}");
 }
 
 // Test 2: Attempt a DELETE statement (Trigger must throw SQLSTATE 45000)
 try {
-    $db->prepare("DELETE FROM AUDIT_LOG_ENTRY WHERE log_id = :id")
+    $db->prepare("DELETE FROM audit_log_entry WHERE log_id = :id")
        ->execute([':id' => $logId]);
     report("INV-06: DELETE Prevention Trigger", false, "Trigger failed to block DELETE query!");
 } catch (\PDOException $e) {
     $blocked = str_contains($e->getMessage(), '45000') || str_contains($e->getMessage(), 'CANNOT BE DELETED');
-    report(
-        "INV-06: DELETE Prevention Trigger", 
-        $blocked, 
-        "Database trigger blocked deletion: {$e->getMessage()}"
-    );
+    report("INV-06: DELETE Prevention Trigger", $blocked, "Blocked: {$e->getMessage()}");
 }
 
 // -----------------------------------------------------------------------------
-// TEST 3 & 4: Action Card Persistence & Non-Overwriting (Bug 1 & 2 Fixes)
+// TEST 3 & 4: Action Card Normalization & State History (Tables 3.9 & 3.10)
 // -----------------------------------------------------------------------------
-echo "\n--- [SECTION 2]: Action Card Persistence & Entity Integrity (INV-01) ---\n";
+echo "\n--- [SECTION 2]: Action Card Normalization & State History (Tables 3.9 & 3.10) ---\n";
 
 $testNode = 'NODE-B1-002';
-$expectedTitle = "Suspected Sub-Surface Pipe Rupture";
-$expectedDirective = "Dispatch maintenance technician to inspect conduit branch at {$testNode}. Check meter coupling.";
-
-// Clean up any stale open tickets on test node so the debouncer processes fresh
-$db->prepare("DELETE FROM INCIDENT_TICKET WHERE node_id = :node AND status IN ('OPEN', 'DISPATCHED', 'PENDING_VERIFICATION')")
+$db->prepare("DELETE FROM incident_ticket WHERE node_id = :node AND status IN ('OPEN', 'DISPATCHED', 'PENDING_VERIFICATION')")
    ->execute([':node' => $testNode]);
 
-// 1. Test IncidentDebouncer persistence
-$debouncer = new IncidentDebouncer();
+// 1. Process Incident through Debouncer (Logs Transition 1: NULL -> OPEN)
+$debouncer = new IncidentDebouncer($db);
 $result = $debouncer->processIncident([
     'node_id' => $testNode,
     'incident_type' => 'CRITICAL_LEAK',
-    'severity_level' => 'P1',
-    'recommendation' => [
-        'title' => $expectedTitle,
-        'action_directive' => $expectedDirective
-    ]
+    'severity_level' => 'P1'
 ]);
 
 $incidentId = $result['incident_id'] ?? '';
-// Select action_card_title, action_directive, AND repair_notes
-$stmt = $db->prepare("SELECT action_card_title, action_directive, repair_notes FROM INCIDENT_TICKET WHERE incident_id = :id");
+
+// Query ticket JOIN action_card_templates
+$stmt = $db->prepare(
+    "SELECT t.incident_id, t.template_id, act.action_card_title, act.action_directive 
+     FROM incident_ticket t 
+     JOIN action_card_templates act ON t.template_id = act.template_id 
+     WHERE t.incident_id = :id"
+);
 $stmt->execute([':id' => $incidentId]);
 $ticketRow = $stmt->fetch();
 
-$titleSaved = ($ticketRow && $ticketRow['action_card_title'] === $expectedTitle);
-$directiveSaved = ($ticketRow && $ticketRow['action_directive'] === $expectedDirective);
-
+$templateResolved = ($ticketRow && !empty($ticketRow['action_card_title']));
 report(
-    "Action Card Ingestion (IncidentDebouncer saves title & directive)",
-    ($titleSaved && $directiveSaved),
-    "Saved title: '{$ticketRow['action_card_title']}', directive: '{$ticketRow['action_directive']}'"
+    "Action Card Ingestion (Resolved template_id from action_card_templates)",
+    $templateResolved,
+    "Resolved Template: '{$ticketRow['action_card_title']}' (Template ID: {$ticketRow['template_id']})"
 );
 
-// 2. Test Repository Non-Overwriting on Repair Update
+// 2. Dispatch and Submit Repair, persisting each state transition
 $repo = new MySQLIncidentRepository($db);
 $ticketEntity = $repo->findById($incidentId);
 
-// Respect State Machine: Must DISPATCH before technician can submit repair
-$ticketEntity->dispatchTo(2); // Assigned to technician ID 2
-$ticketEntity->submitRepair("Replaced 3/4-inch PVC elbow coupling.");
-$repo->save($ticketEntity);
+// Transition 2: OPEN -> DISPATCHED
+$ticketEntity->dispatchTo(2);
+$repo->save($ticketEntity, 1);
 
-// Re-query database to ensure title and directive were NOT overwritten
-$stmt->execute([':id' => $incidentId]);
-$updatedRow = $stmt->fetch();
+// Transition 3: DISPATCHED -> PENDING_VERIFICATION
+$ticketEntity->submitRepair("Clamped PVC pipe coupling.");
+$repo->save($ticketEntity, 2);
 
-$titlePreserved = ($updatedRow && $updatedRow['action_card_title'] === $expectedTitle);
-$directivePreserved = ($updatedRow && $updatedRow['action_directive'] === $expectedDirective);
-$notesAppended = ($updatedRow && isset($updatedRow['repair_notes']) && str_contains((string)$updatedRow['repair_notes'], "Replaced 3/4-inch PVC elbow coupling"));
+$histStmt = $db->prepare("SELECT COUNT(*) FROM incident_status_history WHERE incident_id = :id");
+$histStmt->execute([':id' => $incidentId]);
+$historyCount = (int)$histStmt->fetchColumn();
 
 report(
-    "Action Card Preservation (Repository does not overwrite directives on save)",
-    ($titlePreserved && $directivePreserved && $notesAppended),
-    "Directive remained intact after technician dispatch and repair submission"
+    "State Machine Logging (incident_status_history recorded transitions)",
+    $historyCount >= 2,
+    "Recorded {$historyCount} operational state transitions for ticket {$incidentId}"
 );
 
-// Cleanup test ticket
-$db->prepare("DELETE FROM INCIDENT_TICKET WHERE incident_id = :id")->execute([':id' => $incidentId]);
-
+// Cleanup
+$db->prepare("DELETE FROM incident_ticket WHERE incident_id = :id")->execute([':id' => $incidentId]);
 // -----------------------------------------------------------------------------
 // TEST 5: Last-Admin Demotion/Deletion Guardrail
 // -----------------------------------------------------------------------------
 echo "\n--- [SECTION 3]: Security Governance (Last-Admin Protection) ---\n";
 
-$adminCount = (int)$db->query("SELECT COUNT(*) FROM USER_ACCOUNT WHERE role = 'admin'")->fetchColumn();
-
-if ($adminCount <= 1) {
-    $adminId = (int)$db->query("SELECT user_id FROM USER_ACCOUNT WHERE role = 'admin' LIMIT 1")->fetchColumn();
-    report(
-        "Last-Admin Lockout Guardrail (Demotion/Deletion Blocked)",
-        true,
-        "Protected sole Admin User ID {$adminId} (Total admins: {$adminCount})"
-    );
-} else {
-    report("Last-Admin Lockout Guardrail", true, "Multiple admins exist ({$adminCount}); lockout rule active on last remaining");
-}
+$adminCount = (int)$db->query("SELECT COUNT(*) FROM user_account WHERE role = 'admin' AND is_active = 1")->fetchColumn();
+report("Last-Admin Lockout Guardrail", $adminCount >= 1, "Active admins: {$adminCount}");
 
 // -----------------------------------------------------------------------------
 // TEST 6: Row-Level Security Isolation (RA 10173 Tenant Privacy)
@@ -179,7 +150,7 @@ $mariaPayload = [
 ];
 $mariaToken = JWT::encode($mariaPayload, Security::getJwtSecret(), Security::JWT_ALGORITHM);
 
-// 1. Maria queries her own water
+// Maria queries own water
 $ch = curl_init("http://127.0.0.1/aquila-system/backend-api/public/api/v1/resident/my-water");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer {$mariaToken}"]);
@@ -188,26 +159,17 @@ curl_close($ch);
 
 $ownWaterOk = (($resA['data']['node_id'] ?? '') === 'NODE-B1-001');
 
-// 2. Maria attempts to query neighbor (?node_id=NODE-B1-002)
+// Maria attempts to spoof neighbor (?node_id=NODE-B1-002)
 $ch = curl_init("http://127.0.0.1/aquila-system/backend-api/public/api/v1/resident/my-water?node_id=NODE-B1-002");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, ["Authorization: Bearer {$mariaToken}"]);
 $resB = json_decode((string)curl_exec($ch), true);
 curl_close($ch);
 
-// RLS must ignore the query parameter and force NODE-B1-001
 $rlsBlockedSpoof = (($resB['data']['node_id'] ?? '') === 'NODE-B1-001');
 
-report(
-    "RA 10173 Tenant Isolation (Resident queries assigned meter)",
-    $ownWaterOk,
-    "Resident 3 received assigned node: " . ($resA['data']['node_id'] ?? 'NONE')
-);
-report(
-    "RA 10173 Anti-Spoofing Guard (Resident cannot inspect neighbor ?node_id=002)",
-    $rlsBlockedSpoof,
-    "RLS forced tenant boundary; returned " . ($resB['data']['node_id'] ?? 'NONE') . " instead of requested 002"
-);
+report("RA 10173 Tenant Isolation (Resident queries assigned meter)", $ownWaterOk);
+report("RA 10173 Anti-Spoofing Guard (Resident cannot inspect neighbor ?node_id=002)", $rlsBlockedSpoof);
 
 // -----------------------------------------------------------------------------
 // SUMMARY

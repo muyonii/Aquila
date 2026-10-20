@@ -20,7 +20,7 @@ class MySQLUserRepository implements UserRepositoryInterface
 
     public function findById(int $userId): ?UserAccount
     {
-        $stmt = $this->db->prepare("SELECT * FROM USER_ACCOUNT WHERE user_id = :id LIMIT 1");
+        $stmt = $this->db->prepare("SELECT * FROM user_account WHERE user_id = :id LIMIT 1");
         $stmt->execute([':id' => $userId]);
         $row = $stmt->fetch();
 
@@ -29,7 +29,7 @@ class MySQLUserRepository implements UserRepositoryInterface
 
     public function findByEmail(string $email): ?UserAccount
     {
-        $stmt = $this->db->prepare("SELECT * FROM USER_ACCOUNT WHERE email = :email LIMIT 1");
+        $stmt = $this->db->prepare("SELECT * FROM user_account WHERE email = :email LIMIT 1");
         $stmt->execute([':email' => $email]);
         $row = $stmt->fetch();
 
@@ -38,7 +38,7 @@ class MySQLUserRepository implements UserRepositoryInterface
 
     public function findByRole(?UserRole $role = null): array
     {
-        $sql = "SELECT * FROM USER_ACCOUNT";
+        $sql = "SELECT * FROM user_account";
         $params = [];
         if ($role !== null) {
             $sql .= " WHERE role = :role";
@@ -53,15 +53,14 @@ class MySQLUserRepository implements UserRepositoryInterface
 
     public function countAdmins(): int
     {
-        $stmt = $this->db->query("SELECT COUNT(*) FROM USER_ACCOUNT WHERE role = 'admin'");
+        $stmt = $this->db->query("SELECT COUNT(*) FROM user_account WHERE role = 'admin' AND is_active = 1");
         return (int)$stmt->fetchColumn();
     }
 
     public function save(UserAccount $user, ?string $newPasswordHash = null): int
     {
         if ($user->userId > 0) {
-            // Update existing user (Notice: full_name is omitted because it is a MariaDB generated column)
-            $sql = "UPDATE USER_ACCOUNT 
+            $sql = "UPDATE user_account 
                     SET first_name = :first,
                         middle_name = :middle,
                         last_name = :last,
@@ -71,7 +70,7 @@ class MySQLUserRepository implements UserRepositoryInterface
                         phone_number = :phone,
                         emergency_contact = :emergency,
                         is_active = :active";
-            
+
             $params = [
                 ':first'     => $user->firstName,
                 ':middle'    => $user->middleName,
@@ -96,11 +95,11 @@ class MySQLUserRepository implements UserRepositoryInterface
             return $user->userId;
         }
 
-        // Insert new user
         $stmt = $this->db->prepare(
-            "INSERT INTO USER_ACCOUNT 
-             (first_name, middle_name, last_name, email, password_hash, role, assigned_node_id, phone_number, emergency_contact, is_active)
-             VALUES (:first, :middle, :last, :email, :hash, :role, :node, :phone, :emergency, :active)"
+            "INSERT INTO user_account 
+             (first_name, middle_name, last_name, email, password_hash, role, assigned_node_id, 
+              phone_number, emergency_contact, is_active, terms_accepted_at)
+             VALUES (:first, :middle, :last, :email, :hash, :role, :node, :phone, :emergency, :active, NOW())"
         );
         $stmt->execute([
             ':first'     => $user->firstName,
@@ -120,13 +119,13 @@ class MySQLUserRepository implements UserRepositoryInterface
 
     public function delete(int $userId): void
     {
-        $stmt = $this->db->prepare("DELETE FROM USER_ACCOUNT WHERE user_id = :id");
+        $stmt = $this->db->prepare("DELETE FROM user_account WHERE user_id = :id");
         $stmt->execute([':id' => $userId]);
     }
 
     public function existsByEmail(string $email): bool
     {
-        $stmt = $this->db->prepare("SELECT COUNT(*) FROM USER_ACCOUNT WHERE email = :email");
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM user_account WHERE email = :email");
         $stmt->execute([':email' => $email]);
         return (int)$stmt->fetchColumn() > 0;
     }

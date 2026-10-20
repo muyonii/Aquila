@@ -1,4 +1,3 @@
-// frontend-ui/src/pages/admin/settings/AdminSettingsPage.jsx
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -9,42 +8,119 @@ import {
   Globe,
   BookOpen,
   FileCheck,
-  Info
+  Info,
+  ShieldAlert
 } from 'lucide-react';
 
+import { useAuthStore } from '../../../stores/useAuthStore';
+import { adminApi } from '../../../api/admin_api';
 import { TabRegistry, TabDefinition } from './core/TabRegistry';
 import { settingsManager } from './core/SettingsManager';
 import SettingsSubNav from './components/SettingsSubNav';
 import UnsavedChangesBar from './components/UnsavedChangesBar';
 
-// The 7 Consolidated Tabs
+// Tabs
 import ProfileTab from './tabs/ProfileTab';
 import NotificationsTab from './tabs/NotificationsTab';
 import AppearanceTab from './tabs/AppearanceTab';
 import RegionalTab from './tabs/RegionalTab';
+import SopDirectivesTab from './tabs/SopDirectivesTab';
 import FieldOperationsGuideTab from './tabs/FieldOperationsGuideTab';
 import AdminManualTab from './tabs/AdminManualTab';
 import AboutTab from './tabs/AboutTab';
 
 export default function AdminSettingsPage() {
   const navigate = useNavigate();
+  const { user, restoreSession } = useAuthStore();
 
-  // 1. Build Tab Registry (7 Clean Items)
   const registry = useMemo(() => {
     const reg = new TabRegistry();
 
     // Group 1: Preferences
-    if (ProfileTab) reg.register(new TabDefinition({ id: 'profile', label: 'My Profile', group: 'PREFERENCES', icon: User, keywords: ['name', 'phone', 'password'], component: ProfileTab }));
-    if (NotificationsTab) reg.register(new TabDefinition({ id: 'notifications', label: 'Alerts & Sound', group: 'PREFERENCES', icon: Bell, keywords: ['siren', 'push'], component: NotificationsTab }));
-    if (AppearanceTab) reg.register(new TabDefinition({ id: 'appearance', label: 'Text Size & Display', group: 'PREFERENCES', icon: Sun, keywords: ['theme', 'font', 'scale'], component: AppearanceTab }));
-    if (RegionalTab) reg.register(new TabDefinition({ id: 'regional', label: 'Time & Language', group: 'PREFERENCES', icon: Globe, keywords: ['clock', 'liters', 'tagalog'], component: RegionalTab }));
+    reg.register(
+      new TabDefinition({
+        id: 'profile',
+        label: 'My Profile',
+        group: 'PREFERENCES',
+        icon: User,
+        keywords: ['name', 'phone', 'password', 'account'],
+        component: ProfileTab
+      })
+    );
+    reg.register(
+      new TabDefinition({
+        id: 'notifications',
+        label: 'Alerts & Sound',
+        group: 'PREFERENCES',
+        icon: Bell,
+        keywords: ['siren', 'push', 'sound', 'email'],
+        component: NotificationsTab
+      })
+    );
+    reg.register(
+      new TabDefinition({
+        id: 'appearance',
+        label: 'Text Size & Display',
+        group: 'PREFERENCES',
+        icon: Sun,
+        keywords: ['theme', 'font', 'scale', 'dark', 'contrast'],
+        component: AppearanceTab
+      })
+    );
+    reg.register(
+      new TabDefinition({
+        id: 'regional',
+        label: 'Time & Language',
+        group: 'PREFERENCES',
+        icon: Globe,
+        keywords: ['clock', 'liters', 'tagalog', 'units'],
+        component: RegionalTab
+      })
+    );
+    reg.register(
+      new TabDefinition({
+        id: 'sop-directives',
+        label: 'SOP Action Cards',
+        group: 'PREFERENCES',
+        icon: ShieldAlert,
+        keywords: ['sop', 'action card', 'directives', 'templates', 'plumber'],
+        component: SopDirectivesTab
+      })
+    );
 
-    // Group 2: Consolidated Documentation & Guides
-    if (FieldOperationsGuideTab) reg.register(new TabDefinition({ id: 'field-guide', label: 'Field Operations Guide', group: 'HELP & DOCUMENTATION', icon: BookOpen, keywords: ['leaks', 'verify', 'pipes', 'battery'], component: FieldOperationsGuideTab }));
-    if (AdminManualTab) reg.register(new TabDefinition({ id: 'admin-manual', label: 'Administration Manual', group: 'HELP & DOCUMENTATION', icon: FileCheck, keywords: ['users', 'meters', 'reports', 'complaints'], component: AdminManualTab }));
+    // Group 2: Documentation & Guides
+    reg.register(
+      new TabDefinition({
+        id: 'field-guide',
+        label: 'Field Operations Guide',
+        group: 'HELP & DOCUMENTATION',
+        icon: BookOpen,
+        keywords: ['leaks', 'verify', 'pipes', 'battery'],
+        component: FieldOperationsGuideTab
+      })
+    );
+    reg.register(
+      new TabDefinition({
+        id: 'admin-manual',
+        label: 'Administration Manual',
+        group: 'HELP & DOCUMENTATION',
+        icon: FileCheck,
+        keywords: ['users', 'meters', 'reports', 'complaints'],
+        component: AdminManualTab
+      })
+    );
 
     // Group 3: System
-    if (AboutTab) reg.register(new TabDefinition({ id: 'about', label: 'System Health Check', group: 'SYSTEM', icon: Info, keywords: ['version', 'status', 'bpsu'], component: AboutTab }));
+    reg.register(
+      new TabDefinition({
+        id: 'about',
+        label: 'System Health Check',
+        group: 'SYSTEM',
+        icon: Info,
+        keywords: ['version', 'status', 'bpsu', 'mysql', 'firebase'],
+        component: AboutTab
+      })
+    );
 
     return reg;
   }, []);
@@ -55,7 +131,6 @@ export default function AdminSettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
 
-  // Subscribe to settings changes
   useEffect(() => {
     const unsubscribe = settingsManager.subscribe((state) => {
       setIsDirty(state.isDirty);
@@ -63,7 +138,6 @@ export default function AdminSettingsPage() {
     return () => unsubscribe();
   }, []);
 
-  // Safe Exit Handler
   const handleExit = () => {
     if (isDirty) {
       setIsShaking(true);
@@ -73,7 +147,6 @@ export default function AdminSettingsPage() {
     navigate('/dashboard');
   };
 
-  // Keyboard Escape Listener
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -84,18 +157,35 @@ export default function AdminSettingsPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDirty]);
 
-  // Save changes action
-  const handleSave = () => {
+  // Save both visual/regional preferences AND user profile changes to MySQL
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
+    try {
+      const firstName = settingsManager.get('firstName');
+      const lastName = settingsManager.get('lastName');
+      const phone = settingsManager.get('emergencyPhone');
+
       settingsManager.saveDraft();
-      setIsSaving(false);
+
+      if (user?.user_id && firstName && lastName) {
+        await adminApi.updateUser(user.user_id, {
+          first_name: firstName,
+          last_name: lastName,
+          phone_number: phone,
+          role: user.role
+        });
+        await restoreSession();
+      }
+
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 1500);
-    }, 400);
+    } catch (err) {
+      console.warn('[AdminSettingsPage] Profile sync notice:', err.message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // Reset changes action
   const handleReset = () => {
     settingsManager.resetDraft();
   };
@@ -106,7 +196,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden flex bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-50/50 via-[#f4f5f8] to-[#edf0f5] select-none text-slate-800">
       
-      {/* 1. LEFT SUB-NAV: Text-Only, Zero Vertical Scrollbar */}
+      {/* 1. LEFT SUB-NAV */}
       <div className="bg-white/60 backdrop-blur-xl border-r border-slate-200/50 shrink-0 h-full">
         <SettingsSubNav
           registry={registry}
@@ -124,7 +214,9 @@ export default function AdminSettingsPage() {
             </div>
           ) : (
             <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-rose-200">
-              <p className="text-xs text-rose-700 font-bold">Tab failed to load: {activeTabId}</p>
+              <p className="text-xs text-rose-700 font-bold">
+                Tab failed to load: {activeTabId}
+              </p>
             </div>
           )}
         </div>
@@ -146,7 +238,7 @@ export default function AdminSettingsPage() {
         </span>
       </div>
 
-      {/* 4. DISCORD-STYLE FLOATING SAVE CAPSULE */}
+      {/* 4. FLOATING SAVE CAPSULE */}
       <UnsavedChangesBar
         isDirty={isDirty}
         isShaking={isShaking}

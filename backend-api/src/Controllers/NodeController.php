@@ -15,6 +15,7 @@ use Aquila\Infrastructure\Repositories\MySQLPipelineEdgeRepository;
 use Aquila\Middleware\JwtAuthMiddleware;
 use Aquila\Middleware\RoleMiddleware;
 use Aquila\Services\AuditLogger;
+use Aquila\Services\NotificationDispatchService;
 use InvalidArgumentException;
 use PDO;
 
@@ -42,8 +43,9 @@ class NodeController
     // 1. GET /api/v1/nodes (List all nodes + DAG edges)
     public function listNodes(): void
     {
-        // Allowed for authenticated human actors OR internal agents via pre-shared secret
-        $internalKey = $_SERVER['HTTP_X_AQUILA_INTERNAL_KEY'] ?? '';
+        $internalKey = $_SERVER['HTTP_X_AQUILA_INTERNAL_KEY'] 
+            ?? $_SERVER['REDIRECT_HTTP_X_AQUILA_INTERNAL_KEY'] 
+            ?? '';
         $expectedKey = getenv('WEBHOOK_SECRET') ?: 'aquila_internal_hmac_secret_key_2026';
 
         if ($internalKey !== $expectedKey) {
@@ -63,11 +65,10 @@ class NodeController
         ]);
     }
 
-    // 2. POST /api/v1/nodes (Provision Node with location_name & Sync to Firebase)
+    // 2. POST /api/v1/nodes (Provision Node)
     public function createNode(): void
     {
         $admin = RoleMiddleware::enforce(UserRole::ADMIN);
-
         $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
         try {
@@ -82,6 +83,7 @@ class NodeController
         }
 
         $deviceToken = bin2hex(random_bytes(16));
+        
         $node = new MonitoringNode(
             nodeId: $nodeId,
             householdLabel: $dto->householdLabel,
@@ -91,16 +93,13 @@ class NodeController
             latitude: $dto->latitude,
             longitude: $dto->longitude,
             isPhysical: $dto->isPhysical,
-            installationDate: date('Y-m-d'),
+            installationDate: $dto->installationDate,
             status: NodeStatus::ACTIVE,
-            deviceToken: $deviceToken,
-            batteryVoltage: 4.20
+            deviceToken: $deviceToken
         );
 
-        // 1. Persist to MySQL
         $this->nodeRepo->save($node);
 
-        // 2. If parent_node_id is provided, automatically insert a PIPELINE_DAG_EDGE
         if (!empty($dto->parentNodeId)) {
             $this->edgeRepo->addEdge(new PipelineEdge(
                 edgeId: null,
@@ -111,10 +110,9 @@ class NodeController
             ));
         }
 
-        // 3. Synchronize status & metadata to Firebase Hot Store
+        // Sync status & metadata to Firebase
         $firebaseUrl = rtrim(AppConfig::getFirebaseUrl(), '/');
         
-        // Sync status
         $ch = curl_init("{$firebaseUrl}/nodes/{$nodeId}/status.json");
         curl_setopt_array($ch, [
             CURLOPT_CUSTOMREQUEST  => 'PUT',
@@ -126,7 +124,6 @@ class NodeController
         curl_exec($ch);
         curl_close($ch);
 
-        // Sync metadata
         $metaCh = curl_init("{$firebaseUrl}/nodes/{$nodeId}/metadata.json");
         curl_setopt_array($metaCh, [
             CURLOPT_CUSTOMREQUEST  => 'PUT',
@@ -143,7 +140,6 @@ class NodeController
         curl_exec($metaCh);
         curl_close($metaCh);
 
-        // 4. Append to Immutable Audit Ledger (INV-06)
         AuditLogger::log('NODE_PROVISIONED', (int)$admin['user_id'], null, "Provisioned {$nodeId} ({$dto->householdLabel}) at {$dto->locationName}");
 
         $this->json(201, [
@@ -152,7 +148,7 @@ class NodeController
         ]);
     }
 
-    // 3. PUT /api/v1/nodes/{id} (Update Node Metadata & Toggle Maintenance)
+    // 3. PUT /api/v1/nodes/{id}
     public function updateNode(string $nodeId): void
     {
         $admin = RoleMiddleware::enforce(UserRole::ADMIN);
@@ -184,13 +180,11 @@ class NodeController
             isPhysical: $target->isPhysical,
             installationDate: $target->installationDate,
             status: $status,
-            deviceToken: $target->deviceToken,
-            batteryVoltage: isset($data['battery_voltage']) ? (float)$data['battery_voltage'] : $target->batteryVoltage
+            deviceToken: $target->deviceToken
         );
 
         $this->nodeRepo->save($updated);
 
-        // If parent changed, update DAG edge
         if ($newParent !== $target->parentNodeId) {
             if ($target->parentNodeId !== null) {
                 $this->edgeRepo->removeEdge($target->parentNodeId, $nodeId);
@@ -200,7 +194,7 @@ class NodeController
             }
         }
 
-        // Synchronize status to Firebase to ensure MAS agents suppress alarms during servicing
+        // Sync status to Firebase Hot Store
         $firebaseUrl = rtrim(AppConfig::getFirebaseUrl(), '/');
         $ch = curl_init("{$firebaseUrl}/nodes/{$nodeId}/status.json");
         curl_setopt_array($ch, [
@@ -213,12 +207,17 @@ class NodeController
         curl_exec($ch);
         curl_close($ch);
 
+        if ($status === NodeStatus::FAULT) {
+            $notifService = new NotificationDispatchService($this->db);
+            $notifService->notifySensorFault($nodeId, 'FAULT');
+        }
+
         AuditLogger::log('NODE_UPDATED', (int)$admin['user_id'], null, "Updated {$nodeId}. Status: {$status->value}");
 
         $this->json(200, ["success" => true, "data" => $updated->toArray()]);
     }
 
-    // 4. DELETE /api/v1/nodes/{id}
+    // 4. DELETE /api/v1/nodes/{id} (Decommissioning Guardrail)
     public function deleteNode(string $nodeId): void
     {
         $admin = RoleMiddleware::enforce(UserRole::ADMIN);
@@ -227,9 +226,35 @@ class NodeController
             $this->json(404, ["success" => false, "error" => ["code" => "NODE_NOT_FOUND", "message" => "Node {$nodeId} not found."]]);
         }
 
-        $this->nodeRepo->delete($nodeId);
-        AuditLogger::log('NODE_DECOMMISSIONED', (int)$admin['user_id'], null, "Decommissioned node {$nodeId}");
+        // Decommissioning Invariant: If tickets exist, soft-decommission to DECOMMISSIONED
+        $ticketCount = $this->db->prepare("SELECT COUNT(*) FROM incident_ticket WHERE node_id = :id");
+        $ticketCount->execute([':id' => $nodeId]);
 
-        $this->json(200, ["success" => true, "data" => ["message" => "Node {$nodeId} successfully decommissioned."]]);
+        if ((int)$ticketCount->fetchColumn() > 0) {
+            $this->db->prepare("UPDATE monitoring_node SET status = 'DECOMMISSIONED' WHERE node_id = :id")
+                     ->execute([':id' => $nodeId]);
+
+            // Sync DECOMMISSIONED status to Firebase
+            $firebaseUrl = rtrim(AppConfig::getFirebaseUrl(), '/');
+            $ch = curl_init("{$firebaseUrl}/nodes/{$nodeId}/status.json");
+            curl_setopt_array($ch, [
+                CURLOPT_CUSTOMREQUEST  => 'PUT',
+                CURLOPT_POSTFIELDS     => json_encode('DECOMMISSIONED'),
+                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 4
+            ]);
+            curl_exec($ch);
+            curl_close($ch);
+
+            AuditLogger::log('NODE_DECOMMISSIONED', (int)$admin['user_id'], null, "Decommissioned node {$nodeId} (Preserved ticket audit history)");
+            $this->json(200, ["success" => true, "data" => ["message" => "Node {$nodeId} decommissioned. Historical audit records preserved."]]);
+        }
+
+        // If completely clean without tickets, hard delete
+        $this->nodeRepo->delete($nodeId);
+        AuditLogger::log('NODE_DELETED', (int)$admin['user_id'], null, "Hard-deleted unreferenced node {$nodeId}");
+
+        $this->json(200, ["success" => true, "data" => ["message" => "Node {$nodeId} successfully removed."]]);
     }
 }

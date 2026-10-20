@@ -19,7 +19,7 @@ readonly class RdiScore
     }
 
     /**
-     * Rule BR-04: Household is disadvantaged if receiving less than 70% of community mean.
+     * Rule BR-04: Household is disadvantaged if receiving less than 70% of community mean
      */
     public function isDisadvantaged(): bool
     {
@@ -27,7 +27,7 @@ readonly class RdiScore
     }
 
     /**
-     * High consumer threshold (> 130% of community mean).
+     * High consumer threshold (> 130% of community mean)
      */
     public function isHighConsumer(): bool
     {
@@ -43,6 +43,17 @@ readonly class RdiScore
             return 'HIGH_CONSUMER';
         }
         return 'NORMAL';
+    }
+
+    /**
+     * Calculates equity deficit percentage (e.g., score of 0.50 yields 28.6% deficit from 0.70 baseline)
+     */
+    public function getDeficitPercentage(): float
+    {
+        if (!$this->isDisadvantaged()) {
+            return 0.0;
+        }
+        return round(((AppConfig::RAWLSIAN_RDI_CUTOFF - $this->score) / AppConfig::RAWLSIAN_RDI_CUTOFF) * 100.0, 1);
     }
 
     public function equals(self $other): bool

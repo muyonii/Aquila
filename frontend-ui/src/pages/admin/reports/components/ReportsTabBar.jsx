@@ -1,11 +1,11 @@
-// frontend-ui/src/pages/admin/reports/components/ReportsTabBar.jsx
 import React from 'react';
 
 export default function ReportsTabBar({ activeTab, onChange }) {
   const tabs = [
     { id: 'equity', label: '1. Household Equity & Volume' },
     { id: 'leaks', label: '2. Non-Revenue Water (NRW) Audit' },
-    { id: 'workforce', label: '3. Workforce Performance' }
+    { id: 'workforce', label: '3. Workforce Performance' },
+    { id: 'audit', label: '4. Immutable Audit Ledger (INV-06)' }
   ];
 
   return (

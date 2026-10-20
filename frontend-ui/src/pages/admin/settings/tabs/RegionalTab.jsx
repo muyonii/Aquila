@@ -1,4 +1,3 @@
-// frontend-ui/src/pages/admin/settings/tabs/RegionalTab.jsx
 import React, { useState } from 'react';
 import { settingsManager } from '../core/SettingsManager';
 
@@ -21,14 +20,32 @@ export default function RegionalTab() {
     }
   };
 
+  const now = new Date();
+  const formattedTime = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: clockFormat === '12h'
+  });
+
+  const sampleVolume =
+    volumeUnit === 'm3' ? '1.194 m³ (Cubic Meters)' : '1,193.5 Liters (L)';
+
+  const sampleGreeting =
+    language === 'fil'
+      ? 'Magandang araw! Lahat ng tubo sa Purok 2 ay normal na dumadaloy.'
+      : 'Good day! All conduits in Purok 2 are flowing normally.';
+
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-        <span>Units & regional</span>
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+           {language === 'fil' ? 'Oras, Yunit at Wika' : 'Units & Regional'}
         </h2>
         <p className="text-sm text-slate-500">
-        Choose measurement units, time formats, and language.
+          {language === 'fil'
+            ? 'Piliin ang sukatan ng tubig, format ng oras, at wika ng sistema.'
+            : 'Choose measurement units, time formats, and language.'}
         </p>
       </div>
 
@@ -37,7 +54,9 @@ export default function RegionalTab() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xs font-bold text-[#1d1d1f]">Water Volume Unit</h3>
-            <p className="text-[11px] text-[#86868b]">Liters for sensor telemetry; m³ for billing reports.</p>
+            <p className="text-[11px] text-[#86868b]">
+              Primary unit displayed on dashboard KPIs.
+            </p>
           </div>
           <div className="flex rounded-lg bg-[#efeff1] p-0.5 text-xs font-medium">
             {[
@@ -49,7 +68,9 @@ export default function RegionalTab() {
                 type="button"
                 onClick={() => select('volumeUnit', u.id, setVolumeUnit)}
                 className={`px-3 py-1 rounded-md cursor-pointer transition-colors ${
-                  volumeUnit === u.id ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold' : 'text-[#86868b]'
+                  volumeUnit === u.id
+                    ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold'
+                    : 'text-[#86868b]'
                 }`}
               >
                 {u.label}
@@ -62,7 +83,9 @@ export default function RegionalTab() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xs font-bold text-[#1d1d1f]">Clock Format</h3>
-            <p className="text-[11px] text-[#86868b]">Standard 12-hour or 24-hour military clock.</p>
+            <p className="text-[11px] text-[#86868b]">
+              Standard 12-hour AM/PM or 24-hour military clock.
+            </p>
           </div>
           <div className="flex rounded-lg bg-[#efeff1] p-0.5 text-xs font-medium">
             {[
@@ -74,7 +97,9 @@ export default function RegionalTab() {
                 type="button"
                 onClick={() => select('clockFormat', c.id, setClockFormat)}
                 className={`px-3 py-1 rounded-md cursor-pointer transition-colors ${
-                  clockFormat === c.id ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold' : 'text-[#86868b]'
+                  clockFormat === c.id
+                    ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold'
+                    : 'text-[#86868b]'
                 }`}
               >
                 {c.label}
@@ -87,7 +112,9 @@ export default function RegionalTab() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xs font-bold text-[#1d1d1f]">Language</h3>
-            <p className="text-[11px] text-[#86868b]">Community terminology mode.</p>
+            <p className="text-[11px] text-[#86868b]">
+              Community terminology mode.
+            </p>
           </div>
           <div className="flex rounded-lg bg-[#efeff1] p-0.5 text-xs font-medium">
             {[
@@ -99,13 +126,29 @@ export default function RegionalTab() {
                 type="button"
                 onClick={() => select('language', l.id, setLanguage)}
                 className={`px-3 py-1 rounded-md cursor-pointer transition-colors ${
-                  language === l.id ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold' : 'text-[#86868b]'
+                  language === l.id
+                    ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold'
+                    : 'text-[#86868b]'
                 }`}
               >
                 {l.label}
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Live Regional Formatting Preview */}
+        <div className="p-4 rounded-xl bg-[#f5f5f7] border border-black/[0.04] space-y-2 text-xs">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-[#86868b]">
+            Live Regional Output Preview
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-slate-800">
+            <span>Clock: <strong>{formattedTime}</strong></span>
+            <span>Volume: <strong>{sampleVolume}</strong></span>
+          </div>
+          <p className="text-slate-600 italic pt-1 border-t border-black/[0.04]">
+            &ldquo;{sampleGreeting}&rdquo;
+          </p>
         </div>
       </div>
 

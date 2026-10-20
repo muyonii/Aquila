@@ -1,144 +1,185 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useTelemetryStore } from '../stores/useTelemetryStore';
 import { rtdbSubscription } from '../firebase/rtdb_subscription';
-import { 
-  Droplet, 
-  AlertCircle, 
-  History, 
-  User, 
-  LogOut, 
-  Wifi, 
-  WifiOff 
-} from 'lucide-react';
+import { Droplet, AlertCircle, History, User, LogOut } from 'lucide-react';
+import { AmbientWash, Brand, initials } from '../components/portal/ui';
+
+const NAV_ITEMS = [
+  { name: 'Water Usage', short: 'Usage', path: '/usage', icon: Droplet },
+  { name: 'Report Issue', short: 'Report', path: '/my-reports', icon: AlertCircle },
+  { name: 'History', short: 'History', path: '/history', icon: History },
+  { name: 'Settings', short: 'Account', path: '/account', icon: User }
+];
 
 export default function ResidentLayout() {
   const { user, logout } = useAuthStore();
   const isConnected = useTelemetryStore((state) => state.isConnected);
+  const getNode = useTelemetryStore((state) => state.getNode);
   const navigate = useNavigate();
 
   const assignedNode = user?.assigned_node_id;
 
-  // 1. Selective Firebase Streaming Lifecycle
+  // 1-second clock to evaluate 45s meter liveness accurately
+  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
+  useEffect(() => {
+    const timer = setInterval(
+      () => setNowSec(Math.floor(Date.now() / 1000)),
+      1000
+    );
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     if (assignedNode) {
       rtdbSubscription.subscribeConnectionStatus();
       rtdbSubscription.subscribeResidentNode(assignedNode);
+      rtdbSubscription.subscribeBlackboardHypotheses();
     }
-
     return () => {
-      // Disconnect listener when navigating away or logging out
       rtdbSubscription.unsubscribeAll();
     };
   }, [assignedNode]);
+
+  const nodeState = getNode(assignedNode);
+  const rawTs = Number(nodeState?.telemetry?.timestamp || 0);
+  const ts = rawTs > 1e11 ? Math.floor(rawTs / 1000) : rawTs;
+  const isMeterStreaming = ts > 0 && Math.max(0, nowSec - ts) <= 45;
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
-  const navItems = [
-    { name: 'Water Usage', path: '/usage', icon: Droplet },
-    { name: 'Report Issue', path: '/my-reports', icon: AlertCircle },
-    { name: 'History', path: '/history', icon: History },
-    { name: 'Settings', path: '/account', icon: User },
-  ];
-
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 pb-16 md:pb-0">
-      {/* Top Header */}
-      <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-sky-50 text-sky-600 rounded-lg">
-            <Droplet className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="font-bold text-sky-600 text-sm sm:text-base leading-tight">AQUILA Portal</h1>
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span>Meter:</span>
-              <span className="font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded">
-                {assignedNode || 'Unassigned'}
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="inline-flex items-center gap-1">
-                {isConnected ? (
-                  <span className="text-emerald-600 flex items-center gap-0.5">
-                    <Wifi className="w-3 h-3" /> Live
-                  </span>
-                ) : (
-                  <span className="text-slate-400 flex items-center gap-0.5">
-                    <WifiOff className="w-3 h-3" /> Offline
-                  </span>
-                )}
-              </span>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen flex flex-col bg-[#f4f5f8] text-slate-800 font-sans relative">
+      <AmbientWash />
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                    isActive 
-                      ? 'bg-white text-sky-700 shadow-sm' 
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`
-                }
-              >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.name}</span>
-              </NavLink>
-            );
-          })}
+      {/* Top bar */}
+      <header className="h-14 bg-white/80 backdrop-blur-2xl border-b border-black/[0.05] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+        <Brand
+          suffix={
+            <span className="hidden sm:inline text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase border border-slate-200 rounded-md px-1.5 py-0.5">
+              Resident
+            </span>
+          }
+        />
+
+        {/* Desktop navigation */}
+        <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
+          {NAV_ITEMS.map(({ name, path, icon: Icon }) => (
+            <NavLink
+              key={path}
+              to={path}
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all ${
+                  isActive
+                    ? 'bg-slate-900/95 text-white font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
+                }`
+              }
+            >
+              <Icon className="w-4 h-4 stroke-[1.8]" />
+              <span>{name}</span>
+            </NavLink>
+          ))}
         </nav>
 
-        {/* User Identity & Logout */}
-        <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-xs font-bold text-slate-800 leading-none">{user?.full_name}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">Resident Consumer</p>
+        <div className="flex items-center gap-2.5">
+          {/* Accurate Meter Stream Status Pill */}
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-mono font-semibold ${
+              isMeterStreaming
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : isConnected
+                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                : 'bg-rose-50 text-rose-700 border-rose-200'
+            }`}
+            title={
+              isMeterStreaming
+                ? `Meter ${assignedNode} is actively streaming`
+                : `Meter ${assignedNode} has no packet in the last 45s`
+            }
+          >
+            <span className="flex h-1.5 w-1.5 relative">
+              {isMeterStreaming && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              )}
+              <span
+                className={`relative inline-flex rounded-full h-1.5 w-1.5 ${
+                  isMeterStreaming
+                    ? 'bg-emerald-500'
+                    : isConnected
+                    ? 'bg-slate-400'
+                    : 'bg-rose-500'
+                }`}
+              />
+            </span>
+            {isMeterStreaming
+              ? 'Meter Live'
+              : isConnected
+              ? 'Meter Idle'
+              : 'Offline'}
+          </span>
+
+          <div
+            className="hidden sm:flex w-8 h-8 rounded-full bg-slate-900 text-white font-bold text-xs items-center justify-center ring-2 ring-white/90"
+            title={user?.full_name}
+          >
+            {initials(user?.full_name)}
           </div>
           <button
             onClick={handleLogout}
-            title="Log out"
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition"
+            title="Sign out"
+            aria-label="Sign out"
+            className="p-2 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50/70 transition-colors cursor-pointer"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4 stroke-[1.8]" />
           </button>
         </div>
       </header>
 
-      {/* Main Viewport */}
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6">
+      {/* Page content */}
+      <main className="relative z-10 flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 pb-28 md:pb-8">
         <Outlet />
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex justify-around items-center z-50 shadow-lg">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
+      {/* Mobile bottom navigation */}
+      <nav
+        aria-label="Primary"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/85 backdrop-blur-2xl border-t border-black/[0.05] pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="h-16 grid grid-cols-4">
+          {NAV_ITEMS.map(({ short, path, icon: Icon }) => (
             <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center w-full h-full text-[11px] font-semibold transition ${
-                  isActive ? 'text-sky-600' : 'text-slate-400 hover:text-slate-600'
-                }`
-              }
+              key={path}
+              to={path}
+              className="flex flex-col items-center justify-center gap-1"
             >
-              <Icon className="w-5 h-5 mb-0.5" />
-              <span>{item.name}</span>
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`w-12 h-7 rounded-full flex items-center justify-center transition-all ${
+                      isActive ? 'bg-slate-900 text-white' : 'text-slate-400'
+                    }`}
+                  >
+                    <Icon className="w-[18px] h-[18px] stroke-[1.8]" />
+                  </span>
+                  <span
+                    className={`text-[11px] ${
+                      isActive
+                        ? 'font-bold text-slate-900'
+                        : 'font-medium text-slate-500'
+                    }`}
+                  >
+                    {short}
+                  </span>
+                </>
+              )}
             </NavLink>
-          );
-        })}
+          ))}
+        </div>
       </nav>
     </div>
   );

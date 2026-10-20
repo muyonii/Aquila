@@ -15,7 +15,7 @@ class IncidentTicketTest
         return new IncidentTicket(
             incidentId: 'test-uuid-001',
             nodeId: 'NODE-B1-002',
-            incidentType: 'CRITICAL_LEAK',
+            templateId: 1, // FIXED: Explicit template_id matching Chapter III Table 3.11
             severityLevel: IncidentSeverity::P1,
             detectedAt: '2026-09-28 10:00:00',
             verifiedAt: null,
@@ -30,18 +30,16 @@ class IncidentTicketTest
     {
         $ticket = $this->createTicket();
         assert($ticket->status === IncidentStatus::OPEN);
+        assert($ticket->templateId === 1);
 
-        // 1. Dispatch
         $ticket->dispatchTo(2);
         assert($ticket->status === IncidentStatus::DISPATCHED);
         assert($ticket->assignedTechnicianId === 2);
 
-        // 2. Submit repair -> Pending Verification
         $ticket->submitRepair('Replaced 3/4-inch PVC elbow.');
         assert($ticket->status === IncidentStatus::PENDING_VERIFICATION);
-        assert(str_contains($ticket->repairNotes, 'Replaced 3/4-inch PVC elbow'));
+        assert(str_contains((string)$ticket->repairNotes, 'Replaced 3/4-inch PVC elbow'));
 
-        // 3. Verify Success -> Closed Verified
         $ticket->verifySuccess();
         assert($ticket->status === IncidentStatus::CLOSED_VERIFIED);
         assert($ticket->resolvedAt !== null);
@@ -50,13 +48,13 @@ class IncidentTicketTest
     public function testInvalidTransitionThrowsException(): void
     {
         $ticket = $this->createTicket();
-        $ticket->verifySuccess(); // Move directly to CLOSED_VERIFIED (terminal)
+        $ticket->verifySuccess();
 
         try {
-            $ticket->dispatchTo(3); // Terminal states cannot transition
+            $ticket->dispatchTo(3);
             assert(false, 'Dispatching a closed ticket must throw InvalidArgumentException');
         } catch (InvalidArgumentException $e) {
-            assert(str_contains($e->getMessage(), 'Cannot dispatch ticket from status'));
+            assert(str_contains($e->getMessage(), 'Cannot dispatch ticket from'));
         }
     }
 
@@ -66,5 +64,17 @@ class IncidentTicketTest
         $ticket->cancel('False alarm; resident water hose left running.');
         assert($ticket->status === IncidentStatus::CANCELLED);
         assert($ticket->resolvedAt !== null);
+    }
+
+    public function testDefaultTemplateIdFallback(): void
+    {
+        // When templateId is omitted, default must be 1 per Chapter III Table 3.11
+        $ticket = new IncidentTicket(
+            incidentId: 'test-uuid-003',
+            nodeId: 'NODE-B1-003'
+        );
+
+        assert($ticket->templateId === 1, 'Default template_id must be 1');
+        assert($ticket->status === IncidentStatus::OPEN);
     }
 }

@@ -2,25 +2,27 @@ import { ref, onValue, off } from 'firebase/database';
 import { rtdb } from './firebase_config';
 import { useTelemetryStore } from '../stores/useTelemetryStore';
 
-// Registry of active listeners for cleanup
+// Active listener registry for clean memory management
 const activeListeners = new Map();
 
 export const rtdbSubscription = {
   /**
-   * Monitor Firebase WebSocket connectivity status (.info/connected)
+   * Monitor WebSocket connection status (.info/connected)
    */
   subscribeConnectionStatus() {
+    if (activeListeners.has('connection_status')) return;
+
     const connectedRef = ref(rtdb, '.info/connected');
-    const unsubscribe = onValue(connectedRef, (snap) => {
+    const callback = onValue(connectedRef, (snap) => {
       const isConnected = !!snap.val();
       useTelemetryStore.getState().setConnectionStatus(isConnected);
     });
-    activeListeners.set('connection_status', { ref: connectedRef, callback: unsubscribe });
+
+    activeListeners.set('connection_status', { ref: connectedRef, callback });
   },
 
   /**
-   * Subscribe to ALL nodes telemetry (/nodes)
-   * Used by Admin and Technician to monitor the entire pipeline grid
+   * Subscribe to ALL nodes telemetry (/nodes) for Admin and Technician views
    */
   subscribeAllNodes() {
     if (activeListeners.has('all_nodes')) return;
@@ -37,9 +39,7 @@ export const rtdbSubscription = {
   },
 
   /**
-   * Subscribe to a SINGLE assigned household meter (/nodes/{nodeId})
-   * Used by Residents to respect data isolation and reduce bandwidth
-   * @param {string} nodeId - e.g. "NODE-B1-001"
+   * Subscribe to a SINGLE assigned household meter (/nodes/{nodeId}) for Resident view
    */
   subscribeResidentNode(nodeId) {
     if (!nodeId) return;
@@ -60,11 +60,10 @@ export const rtdbSubscription = {
   },
 
   /**
-   * Subscribe to MAS Blackboard Hypotheses & Alarms (/blackboard/hypotheses)
-   * Streams LeakDetectionAgent and FairnessEvaluationAgent outputs
+   * Subscribe to MAS Blackboard Hypotheses (/blackboard/hypotheses)
    */
   subscribeBlackboardHypotheses() {
-    if (activeListeners.has('hypotheses')) return;
+    if (activeListeners.has('leak_hypotheses')) return;
 
     const leakRef = ref(rtdb, 'blackboard/hypotheses/leak');
     const leakCallback = onValue(leakRef, (snapshot) => {
@@ -83,7 +82,6 @@ export const rtdbSubscription = {
 
   /**
    * Subscribe to Agent Watchdog Heartbeats (/blackboard/heartbeats)
-   * Monitors liveness of CMP-LDA-01, CMP-FEA-01, and CMP-CA-01
    */
   subscribeHeartbeats() {
     if (activeListeners.has('heartbeats')) return;
@@ -98,8 +96,7 @@ export const rtdbSubscription = {
   },
 
   /**
-   * Unsubscribe ALL active listeners
-   * Called during user logout to prevent memory leaks and background network usage
+   * Unsubscribe ALL active listeners on logout to prevent memory leaks
    */
   unsubscribeAll() {
     activeListeners.forEach(({ ref }) => {

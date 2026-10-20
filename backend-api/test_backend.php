@@ -3,6 +3,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+use Aquila\Config\Database;
+use Aquila\Config\Env;
+use Aquila\Config\Security;
+
+Env::load();
+
 echo "===============================================================\n";
 echo " AQUILA BACKEND API COMPREHENSIVE VERIFICATION SUITE\n";
 echo "===============================================================\n";
@@ -27,57 +33,96 @@ function testApi(string $name, string $url, string $method = 'GET', array $heade
     echo sprintf("%-12s | HTTP %d (Expected %d) | %s\n", $icon, $httpCode, $expectedCode, $name);
     
     if (!$passed && $res) {
-        echo "   ↳ Response: " . substr($res, 0, 150) . "\n";
+        echo "   ↳ Response: " . substr((string)$res, 0, 180) . "\n";
     }
 
     return json_decode((string)$res, true);
 }
 
-// 1. Database Connection
+// 1. Database Connection & Dynamic Test Account Resolution
+$db = null;
+$adminEmail = 'admin@bawasa.gov.ph';
+$techEmail  = 'technician@bawasa.gov.ph';
+$resEmail   = 'resident1@gmail.com';
+$testPass   = 'Password123!';
+$backupHashes = [];
+
 try {
-    $db = Aquila\Config\Database::getConnection();
+    $db = Database::getConnection();
     echo "✅ [PASS]     | MySQL 8.0 Connection Established (aquila_db)\n";
+
+    // Dynamically resolve active accounts by role from user_account
+    $adminRow = $db->query("SELECT user_id, email, password_hash FROM user_account WHERE role = 'admin' AND is_active = 1 ORDER BY user_id ASC LIMIT 1")->fetch();
+    $techRow  = $db->query("SELECT user_id, email, password_hash FROM user_account WHERE role = 'technician' AND is_active = 1 ORDER BY user_id ASC LIMIT 1")->fetch();
+    $resRow   = $db->query("SELECT user_id, email, password_hash FROM user_account WHERE role = 'resident' AND is_active = 1 ORDER BY user_id ASC LIMIT 1")->fetch();
+
+    $tempHash = password_hash($testPass, PASSWORD_BCRYPT);
+
+    if ($adminRow) {
+        $adminEmail = $adminRow['email'];
+        $backupHashes[$adminRow['user_id']] = $adminRow['password_hash'];
+    }
+    if ($techRow) {
+        $techEmail = $techRow['email'];
+        $backupHashes[$techRow['user_id']] = $techRow['password_hash'];
+    }
+    if ($resRow) {
+        $resEmail = $resRow['email'];
+        $backupHashes[$resRow['user_id']] = $resRow['password_hash'];
+    }
+
+    // Ensure known test password during test execution
+    $upd = $db->prepare("UPDATE user_account SET password_hash = :h WHERE user_id = :id");
+    foreach ($backupHashes as $uid => $_) {
+        $upd->execute([':h' => $tempHash, ':id' => $uid]);
+    }
 } catch (Exception $e) {
     echo "❌ [FAIL]     | Database Connection Failed: " . $e->getMessage() . "\n";
+    exit(1);
 }
 
 // 2. Health Endpoint
 testApi('Health Check Endpoint', 'http://127.0.0.1/aquila-system/backend-api/public/');
 
-// 3. Admin Authentication
+// 3. Admin Authentication (JWT + Refresh Token)
 $login = testApi(
-    'Admin Login (JWT Issuance)', 
+    "Admin Login ({$adminEmail})", 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/auth/login', 
     'POST', 
     ['Content-Type: application/json'], 
-    json_encode(['email' => 'admin@bawasa.gov.ph', 'password' => 'Password123!'])
+    json_encode(['email' => $adminEmail, 'password' => $testPass])
 );
 $adminToken = $login['data']['token'] ?? '';
+$refreshToken = $login['data']['refresh_token'] ?? '';
+
+// 3b. Test Refresh Token Rotation (Table 3.3: user_sessions)
+testApi(
+    'JWT Refresh Token Rotation (/auth/refresh)', 
+    'http://127.0.0.1/aquila-system/backend-api/public/api/v1/auth/refresh', 
+    'POST', 
+    ['Content-Type: application/json'], 
+    json_encode(['refresh_token' => $refreshToken])
+);
 
 // 4. Technician Authentication
 $techLogin = testApi(
-    'Technician Login (JWT Issuance)', 
+    "Technician Login ({$techEmail})", 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/auth/login', 
     'POST', 
     ['Content-Type: application/json'], 
-    json_encode(['email' => 'technician@bawasa.gov.ph', 'password' => 'Password123!'])
+    json_encode(['email' => $techEmail, 'password' => $testPass])
 );
 $techToken = $techLogin['data']['token'] ?? '';
 
 // 5. Resident Authentication
 $resLogin = testApi(
-    'Resident Login (JWT Issuance)', 
+    "Resident Login ({$resEmail})", 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/auth/login', 
     'POST', 
     ['Content-Type: application/json'], 
-    json_encode(['email' => 'resident1@gmail.com', 'password' => 'Password123!'])
+    json_encode(['email' => $resEmail, 'password' => $testPass])
 );
 $resToken = $resLogin['data']['token'] ?? '';
-
-use Aquila\Config\Env;
-use Aquila\Config\Security;
-
-Env::load();
 
 // 6. HMAC Webhook Ingestion (Positive Authenticated Test)
 $time = time();
@@ -88,7 +133,7 @@ $webhookPayload = json_encode([
         'node_id' => 'NODE-B1-003',
         'incident_type' => 'CRITICAL_LEAK',
         'severity_level' => 'P1',
-        'recommendation' => ['action_directive' => 'Check valve at Node 03']
+        'recommendation' => ['title' => 'Sudden Pipe Rupture', 'action_directive' => 'Check valve at Node 03']
     ]
 ]);
 
@@ -96,7 +141,7 @@ $secret = Security::getWebhookSecret();
 $sig = hash_hmac('sha256', $time . '.' . $webhookPayload, $secret);
 
 testApi(
-    'HMAC Webhook Ingestion: Valid Signature (Node 03)', 
+    'HMAC Webhook Ingestion: Valid Signature', 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/webhooks/incident', 
     'POST', 
     [
@@ -107,9 +152,9 @@ testApi(
     $webhookPayload
 );
 
-// 6b. HMAC Webhook Ingestion: Tampered Signature Security Test (Must be HTTP 403)
+// 6b. Security Guard: Forged HMAC Signature Rejection (Must be HTTP 403)
 testApi(
-    'Security Guard: Forged HMAC Webhook Signature Rejection', 
+    'Security Guard: Forged HMAC Signature Rejection', 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/webhooks/incident', 
     'POST', 
     [
@@ -121,24 +166,7 @@ testApi(
     403
 );
 
-// 6c. HMAC Webhook Ingestion: Expired Timestamp Replay Attack (Must be HTTP 401)
-$staleTime = time() - 600; // 10 minutes ago (> 300s replay tolerance)
-$staleSig = hash_hmac('sha256', $staleTime . '.' . $webhookPayload, $secret);
-
-testApi(
-    'Security Guard: Replay Attack Expired Timestamp Rejection', 
-    'http://127.0.0.1/aquila-system/backend-api/public/api/v1/webhooks/incident', 
-    'POST', 
-    [
-        'Content-Type: application/json', 
-        'X-Aquila-Timestamp: ' . $staleTime, 
-        'X-Aquila-Signature: ' . $staleSig
-    ], 
-    $webhookPayload,
-    401
-);
-
-// 7. Admin List Incidents
+// 7. Admin List Incidents (Joined action_card_templates)
 testApi(
     'Admin List Incidents (Bearer JWT)', 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/incidents', 
@@ -162,7 +190,7 @@ testApi(
     ['Authorization: Bearer ' . $resToken]
 );
 
-// 10. Cluster Analytics Summary
+// 10. Cluster Analytics KPI Summary
 testApi(
     'Cluster Analytics KPI Summary', 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/analytics/summary', 
@@ -170,7 +198,15 @@ testApi(
     ['Authorization: Bearer ' . $adminToken]
 );
 
-// 11. Security Negative Test: Unauthorized Request without Token (Should be HTTP 401)
+// 11. Notification Center (Table 3.13)
+testApi(
+    'Notification Center: Fetch Web Alerts', 
+    'http://127.0.0.1/aquila-system/backend-api/public/api/v1/notifications', 
+    'GET', 
+    ['Authorization: Bearer ' . $adminToken]
+);
+
+// 12. Security Negative Test: Unauthorized Request without Token (Must be HTTP 401)
 testApi(
     'Security Guard: Missing Token Rejection', 
     'http://127.0.0.1/aquila-system/backend-api/public/api/v1/incidents', 

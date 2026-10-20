@@ -7,21 +7,21 @@ Leak Samples (1)        : 2500 (25.0%)
 
 FEATURE CORRELATION WITH TARGET (is_leak):
 is_leak             1.000000
-duration_minutes    0.817429
-rolling_mean_5m     0.426772
-flow_rate_lpm       0.421921
-hour_of_day        -0.009523
-effective_std      -0.304261
+duration_minutes    0.706413
+rolling_mean_5m     0.364135
+flow_rate_lpm       0.363860
+hour_of_day        -0.156105
+effective_std      -0.451703
 
 FEATURE MEANS BY CLASS:
          flow_rate_lpm  rolling_mean_5m  effective_std  duration_minutes  hour_of_day
 is_leak                                                                              
-0             1.660300         1.653840       0.200905           3.06360    11.531067
-1             4.036556         4.037448       0.046571         138.74728    11.379200
+0             3.158177         3.156301       0.293104           4.79668       11.586
+1             7.402068         7.401996       0.059669          98.15152        9.050
 
 FEATURE STANDARD DEVIATIONS BY CLASS:
          flow_rate_lpm  rolling_mean_5m  effective_std  duration_minutes  hour_of_day
 is_leak                                                                              
-0             2.222663         2.190760       0.241477          5.023857     6.914483
-1             2.176644         2.177209       0.014040         82.362440     6.879472
+0             2.841204         2.836705       0.229641          7.774448     6.894801
+1             8.020726         8.020588       0.035350         79.895547     7.109016
 ======================================================================

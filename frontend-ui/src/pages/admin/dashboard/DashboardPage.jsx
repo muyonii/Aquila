@@ -1,7 +1,7 @@
-// frontend-ui/src/pages/admin/dashboard/DashboardPage.jsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { dashboardManager } from './core/DashboardManager';
+import { adminApi } from '../../../api/admin_api';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { rtdbSubscription } from '../../../firebase/rtdb_subscription';
 
 import DashboardHeader from './components/DashboardHeader';
 import { DashboardKpiGrid } from './components/DashboardKpiGrid';
@@ -10,61 +10,99 @@ import PurokNodeOverview from './components/PurokNodeOverview';
 import PriorityIncidentWidget from './components/PriorityIncidentWidget';
 import AdminActionHub from './components/AdminActionHub';
 import SystemMapPreview from './components/SystemMapPreview';
+import AgentHeartbeatBar from '../../../components/common/AgentHeartbeatBar';
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+
   const [summary, setSummary] = useState({
     totalNodes: 9,
-    community24hLiters: 1193.5,
+    community24hLiters: 0,
     nodes: [],
     incidentBreakdown: [],
     systemStatus: 'OPERATIONAL'
   });
-  const [loading, setLoading] = useState(true);
+  const [realIncidents, setRealIncidents] = useState([]);
+  const [techCount, setTechCount] = useState(1);
 
   useEffect(() => {
-    dashboardManager.fetchDashboardData().then((res) => {
-      setSummary(res);
-      setLoading(false);
-    });
+    async function loadDashboardData() {
+      try {
+        const [sumRes, incRes, techRes] = await Promise.all([
+          adminApi.getClusterSummary(),
+          adminApi.getIncidents(),
+          adminApi.getUsers('technician')
+        ]);
+
+        if (sumRes?.success && sumRes.data) {
+          setSummary({
+            totalNodes: sumRes.data.total_nodes ?? 9,
+            community24hLiters: sumRes.data.community_24h_liters ?? 0,
+            nodes: sumRes.data.nodes ?? [],
+            incidentBreakdown: sumRes.data.incident_breakdown ?? [],
+            systemStatus: sumRes.data.system_status ?? 'OPERATIONAL'
+          });
+        }
+
+        if (incRes?.success && Array.isArray(incRes.data)) {
+          setRealIncidents(incRes.data);
+        }
+
+        if (techRes?.success && Array.isArray(techRes.data?.users)) {
+          setTechCount(techRes.data.users.length || 1);
+        }
+      } catch (err) {
+        console.warn('[Dashboard] Failed fetching dashboard data:', err.message);
+      }
+    }
+
+    loadDashboardData();
+
+    // Subscribe to Firebase Hot Store for real-time telemetry, hypotheses, & heartbeats
+    rtdbSubscription.subscribeConnectionStatus();
+    rtdbSubscription.subscribeAllNodes();
+    rtdbSubscription.subscribeBlackboardHypotheses();
+    rtdbSubscription.subscribeHeartbeats();
+
+    return () => {
+      rtdbSubscription.unsubscribeAll();
+    };
   }, []);
 
   const kpis = useMemo(() => {
-    const openIncidents = summary.incidentBreakdown.find((i) => i.status === 'OPEN')?.total || 0;
+    const openList = realIncidents.filter((i) => i.status === 'OPEN');
+    const activeList = realIncidents.filter((i) =>
+      ['OPEN', 'DISPATCHED', 'PENDING_VERIFICATION', 'REPAIR_FAILED'].includes(i.status)
+    );
+
     return {
-      activeLeaks: openIncidents,
-      pendingTickets: openIncidents,
-      onDutyTechs: 4
+      activeLeaks: activeList.length,
+      pendingTickets: openList.length,
+      onDutyTechs: techCount
     };
-  }, [summary]);
+  }, [realIncidents, techCount]);
 
   return (
     <div className="min-h-full bg-[#f4f5f8] text-[#1d1d1f] p-6 sm:p-10 space-y-8 select-none font-sans">
-      
-      {/* 1. Time-Aware Header & Live Watchdog Clock */}
       <DashboardHeader user={user} />
 
-      {/* 2. Tier 1: 4 Frosted Sparkline Metric Cards */}
+      {/* MAS Agent Liveness & Watchdog Bar */}
+      <AgentHeartbeatBar />
+
       <DashboardKpiGrid summary={summary} kpis={kpis} />
 
-      {/* 3. Tier 2: Asymmetric 2-Column Workstation (60% / 40%) matching reference */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Left Column (60%): Waveform & Purok Grid */}
         <div className="lg:col-span-7 space-y-6">
           <CommunityFlowChart />
           <PurokNodeOverview nodes={summary.nodes} />
         </div>
 
-        {/* Right Column (40%): Priority Triage, Action Hub & System Map Preview */}
         <div className="lg:col-span-5 space-y-6">
-          <PriorityIncidentWidget incidents={summary.incidentBreakdown} />
+          <PriorityIncidentWidget incidents={realIncidents} />
           <AdminActionHub />
           <SystemMapPreview />
         </div>
-
       </div>
-
     </div>
   );
 }

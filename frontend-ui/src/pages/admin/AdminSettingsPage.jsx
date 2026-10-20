@@ -1,1 +1,1 @@
-export { default } from './dashboard/AdminDashboardPage';
+export { default } from './settings/AdminSettingsPage';

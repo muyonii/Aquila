@@ -1,11 +1,5 @@
 import React from 'react';
 
-/**
- * Lightweight SVG trend sparkline for telemetry buffers
- * @param {Array<{timestamp: number, flow: number}>} data - 20-point historical buffer
- * @param {number} height - Sparkline height in pixels
- * @param {boolean} isLeak - If true, paints line red to highlight anomaly
- */
 export default function FlowSparkline({ 
   data = [], 
   height = 36, 
@@ -23,7 +17,7 @@ export default function FlowSparkline({
   }
 
   const flows = data.map(d => typeof d === 'number' ? d : d.flow);
-  const maxFlow = Math.max(...flows, 4.0); // minimum ceiling of 4.0 LPM for scale
+  const maxFlow = Math.max(...flows, 4.0);
   const minFlow = 0;
 
   const width = 140;
@@ -31,7 +25,6 @@ export default function FlowSparkline({
   const innerWidth = width - padding * 2;
   const innerHeight = height - padding * 2;
 
-  // Calculate SVG point coordinates
   const points = flows.map((val, idx) => {
     const x = padding + (idx / (flows.length - 1)) * innerWidth;
     const y = height - padding - ((val - minFlow) / (maxFlow - minFlow)) * innerHeight;
@@ -45,14 +38,11 @@ export default function FlowSparkline({
   return (
     <div className="inline-block relative">
       <svg width={width} height={height} className="overflow-visible">
-        {/* Shaded Area under Curve */}
         <polygon
           points={`${padding},${height - padding} ${points.join(' ')} ${width - padding},${height - padding}`}
           fill={fillColor}
           opacity="0.3"
         />
-
-        {/* Trend Polyline */}
         <path
           d={pathD}
           fill="none"
@@ -61,8 +51,6 @@ export default function FlowSparkline({
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-
-        {/* Current Packet Dot */}
         {points.length > 0 && (
           <circle
             cx={points[points.length - 1].split(',')[0]}

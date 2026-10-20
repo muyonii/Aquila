@@ -1,9 +1,10 @@
 import React from 'react';
-import { Cpu, ShieldAlert, AlertTriangle, Activity } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Activity } from 'lucide-react';
 
 /**
- * Renders non-actuating operational action cards under constraint INV-01
- * @param {string} title - Action card heading (e.g. "Suspected Sub-Surface Pipe Rupture")
+ * ActionCard Component (INV-01)
+ * Renders non-actuating operational directives for human operators and plumbers.
+ * @param {string} title - Action card heading
  * @param {string} priority - Priority tier ('P1', 'P2', 'P3')
  * @param {string} directive - Human operator instructions
  */

@@ -18,6 +18,19 @@ class ConsumptionVolumeTest
         assert($total->toCubicMeters() === 1.251, '1250.50 liters should equal 1.251 m3');
     }
 
+    public function testSubtractionWithTamperFloorProtection(): void
+    {
+        $vol1 = new ConsumptionVolume(100.0);
+        $vol2 = new ConsumptionVolume(40.0);
+        $diff = $vol1->subtract($vol2);
+        assert($diff->liters === 60.0);
+
+        // Reverse-meter protection: Subtracting larger from smaller clamps to 0.00
+        $vol3 = new ConsumptionVolume(200.0);
+        $clamped = $vol1->subtract($vol3);
+        assert($clamped->liters === 0.0, 'Volume delta must never evaluate to negative');
+    }
+
     public function testNegativeVolumeThrowsException(): void
     {
         try {

@@ -11,15 +11,14 @@ class FirebaseCleanerService
 {
     /**
      * Scans Firebase RTDB and flags or resets stale telemetry older than TTL (INV-04)
-     * Returns count of inspected/cleaned records.
      */
     public static function pruneExpiredTelemetry(): int
     {
         $firebaseUrl = rtrim(AppConfig::getFirebaseUrl(), '/');
         $db = Database::getConnection();
 
-        // Fetch all registered nodes from MySQL
-        $stmt = $db->query("SELECT node_id FROM MONITORING_NODE");
+        // Query normalized lowercase table
+        $stmt = $db->query("SELECT node_id FROM monitoring_node");
         $nodes = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         $now = time();
@@ -29,7 +28,6 @@ class FirebaseCleanerService
         foreach ($nodes as $nodeId) {
             $telemetryUrl = "{$firebaseUrl}/nodes/{$nodeId}/telemetry.json";
 
-            // Fetch live telemetry timestamp from Firebase
             $ch = curl_init($telemetryUrl);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_TIMEOUT, 5);
@@ -48,7 +46,7 @@ class FirebaseCleanerService
 
             $packetAge = $now - (int)$telemetry['timestamp'];
 
-            // If packet is older than 2 hours, zero out the flow rate to prevent phantom leaks
+            // Zero out flow rate if telemetry is stale (>2 hours) to prevent phantom leaks
             if ($packetAge > $ttlSeconds && (float)($telemetry['flow_rate_lpm'] ?? 0.0) > 0.0) {
                 $patchUrl = "{$firebaseUrl}/nodes/{$nodeId}/telemetry.json";
                 $patchData = json_encode([

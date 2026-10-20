@@ -1,47 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Marker, Popup, useMap } from 'react-leaflet';
 import { useTaskStore } from '../../stores/useTaskStore';
+import { useTelemetryStore } from '../../stores/useTelemetryStore';
+import { adminApi } from '../../api/admin_api';
 import OsmMap from '../../components/map/OsmMap';
-import { createNodeIcon, createTechLocationIcon } from '../../components/map/mapIcons';
+import DagNetworkLayer from '../../components/map/DagNetworkLayer';
+import {
+  createNodeIcon,
+  createTechLocationIcon
+} from '../../components/map/mapIcons';
 
-import { 
-  Navigation, 
-  MapPin, 
-  ArrowRight, 
-  Crosshair, 
-  ShieldAlert, 
-  AlertTriangle, 
-  Compass, 
-  RefreshCw 
+import {
+  Navigation,
+  MapPin,
+  ArrowRight,
+  Crosshair,
+  LocateOff
 } from 'lucide-react';
 
-// Child component to programmatically pan/fly the Leaflet map
 function MapController({ targetCenter }) {
   const map = useMap();
   useEffect(() => {
     if (targetCenter) {
-      map.flyTo(targetCenter, 18, { animate: true });
+      map.flyTo(targetCenter, 18, { animate: true, duration: 0.6 });
     }
   }, [targetCenter, map]);
   return null;
 }
 
 export default function MapPage() {
-  const { tasks, fetchMyTasks, isLoading } = useTaskStore();
+  const [searchParams] = useSearchParams();
+  const focusNodeId = searchParams.get('focus');
 
-  // Technician GPS State
+  const { tasks, fetchMyTasks } = useTaskStore();
+  const rtdbNodes = useTelemetryStore((state) => state.nodes);
+  const leakHypotheses = useTelemetryStore((state) => state.leakHypotheses);
+
+  const [allNodes, setAllNodes] = useState([]);
   const [techLocation, setTechLocation] = useState(null);
   const [targetCenter, setTargetCenter] = useState(null);
   const [gpsError, setGpsError] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
 
-  // 1. Fetch assigned work orders
+  // 1-second clock to evaluate 45s telemetry staleness accurately
+  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
   useEffect(() => {
-    fetchMyTasks();
-  }, [fetchMyTasks]);
+    const timer = setInterval(
+      () => setNowSec(Math.floor(Date.now() / 1000)),
+      1000
+    );
+    return () => clearInterval(timer);
+  }, []);
 
-  // 2. Real-Time GPS Tracking via navigator.geolocation
+  useEffect(() => {
+    fetchMyTasks().catch(() => {});
+    adminApi
+      .getNodes()
+      .then((res) => {
+        if (res?.success && Array.isArray(res.data?.nodes)) {
+          const normalized = res.data.nodes.map((n) => ({
+            ...n,
+            latitude: n.coordinates?.lat ?? n.latitude,
+            longitude: n.coordinates?.lng ?? n.longitude
+          }));
+          setAllNodes(normalized);
+
+          if (focusNodeId) {
+            const target = normalized.find((n) => n.node_id === focusNodeId);
+            if (target?.latitude && target?.longitude) {
+              setTargetCenter([
+                Number(target.latitude),
+                Number(target.longitude)
+              ]);
+            }
+          }
+        }
+      })
+      .catch(() => {});
+  }, [fetchMyTasks, focusNodeId]);
+
   useEffect(() => {
     if (!('geolocation' in navigator)) {
       setGpsError('Geolocation is not supported by your browser.');
@@ -50,150 +88,249 @@ export default function MapPage() {
 
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        const coords = [pos.coords.latitude, pos.coords.longitude];
-        setTechLocation(coords);
+        setTechLocation([pos.coords.latitude, pos.coords.longitude]);
         setGpsError(null);
       },
-      (err) => {
-        // Fallback gracefully on local dev or if permission denied
-        setGpsError('GPS permission denied or unavailable.');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 10000
-      }
+      () =>
+        setGpsError(
+          'GPS location is off. Showing Purok 2 pipeline network.'
+        ),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // Filter tasks that have valid coordinates
-  const tasksWithCoords = tasks.filter(
-    (t) => t.latitude && t.longitude && !isNaN(Number(t.latitude)) && !isNaN(Number(t.longitude))
+  const activeTasks = useMemo(
+    () =>
+      tasks.filter(
+        (t) =>
+          t.status !== 'CLOSED_VERIFIED' &&
+          t.latitude &&
+          t.longitude &&
+          !isNaN(Number(t.latitude)) &&
+          !isNaN(Number(t.longitude))
+      ),
+    [tasks]
   );
 
+  const taskByNodeId = useMemo(() => {
+    const map = {};
+    activeTasks.forEach((t) => {
+      map[t.node_id] = t;
+    });
+    return map;
+  }, [activeTasks]);
+
+  // Count how many nodes are actively streaming (<= 45s)
+  const streamingCount = useMemo(() => {
+    return allNodes.filter((n) => {
+      const rawTs = Number(rtdbNodes?.[n.node_id]?.telemetry?.timestamp || 0);
+      const ts = rawTs > 1e11 ? Math.floor(rawTs / 1000) : rawTs;
+      return ts > 0 && Math.max(0, nowSec - ts) <= 45;
+    }).length;
+  }, [allNodes, rtdbNodes, nowSec]);
+
   const handleCenterOnMe = () => {
-    if (techLocation) {
-      setTargetCenter(techLocation);
-    }
+    if (techLocation) setTargetCenter([...techLocation]);
   };
 
   const handleCenterOnTask = (task) => {
-    const coords = [Number(task.latitude), Number(task.longitude)];
-    setTargetCenter(coords);
+    setTargetCenter([Number(task.latitude), Number(task.longitude)]);
     setSelectedTask(task);
   };
 
+  const glass =
+    'bg-white/90 backdrop-blur-xl border border-white/90 ring-1 ring-black/[0.05] shadow-[0_4px_24px_-4px_rgba(0,0,0,0.12)]';
+
   return (
-    <div className="relative h-[calc(100vh-7.5rem)] w-full flex flex-col">
-      {/* 1. Floating Top HUD Strip */}
-      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
-        <div className="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-md pointer-events-auto flex items-center gap-2 text-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-bold text-slate-800">
-            {tasksWithCoords.length} Active Work Order{tasksWithCoords.length !== 1 ? 's' : ''}
-          </span>
+    <div className="relative w-full h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] md:h-[calc(100dvh-3.5rem)] flex flex-col">
+      {/* Floating HUD */}
+      <div className="absolute top-3 left-14 right-3 z-10 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        <div
+          className={`${glass} px-3.5 py-2 rounded-xl pointer-events-auto flex items-center gap-3 text-xs`}
+        >
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                activeTasks.length > 0
+                  ? 'bg-rose-500 animate-ping'
+                  : streamingCount > 0
+                  ? 'bg-emerald-500 animate-pulse'
+                  : 'bg-slate-400'
+              }`}
+            />
+            <span className="font-bold text-slate-800">
+              {activeTasks.length} work order
+              {activeTasks.length !== 1 ? 's' : ''} • {streamingCount}/
+              {allNodes.length} streaming
+            </span>
+          </div>
+
+          {/* Mini Legend */}
+          <div className="hidden sm:flex items-center gap-2.5 pl-3 border-l border-slate-200 text-[10.5px] text-slate-500">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-rose-600" /> Leak
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Maint / Check
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Online
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-slate-400" /> Offline
+            </span>
+          </div>
         </div>
 
-        {/* GPS Location Centering Button */}
         <button
           onClick={handleCenterOnMe}
           disabled={!techLocation}
-          title="Center on My Location"
-          className="bg-white hover:bg-slate-50 text-slate-700 p-2.5 rounded-xl border border-slate-200 shadow-md pointer-events-auto transition active:scale-95 disabled:opacity-50"
+          title={gpsError || 'Center on my GPS location'}
+          aria-label="Center on my location"
+          className={`${glass} w-11 h-11 rounded-xl pointer-events-auto flex items-center justify-center text-slate-700 transition active:scale-95 disabled:opacity-60 cursor-pointer`}
         >
-          <Crosshair className={`w-4 h-4 ${techLocation ? 'text-sky-600' : 'text-slate-400'}`} />
+          {gpsError ? (
+            <LocateOff className="w-4 h-4 text-slate-400" />
+          ) : (
+            <Crosshair
+              className={`w-4 h-4 ${
+                techLocation ? 'text-sky-600' : 'text-slate-400 animate-pulse'
+              }`}
+            />
+          )}
         </button>
       </div>
 
-      {/* 2. Leaflet OpenStreetMap Container */}
+      {/* Leaflet Map with Hydraulic DAG Conduits + All Nodes */}
       <div className="flex-1 w-full h-full relative z-0">
-        <OsmMap className="h-full w-full rounded-2xl">
-          {/* Programmatic Map Panning */}
+        <OsmMap className="h-full w-full !rounded-none !border-0 !shadow-none">
           <MapController targetCenter={targetCenter} />
 
-          {/* A. Plumber's Live GPS Dot */}
+          {/* Hydraulic Pipeline Conduits (Parent -> Child DAG) */}
+          <DagNetworkLayer nodes={allNodes} leakHypotheses={leakHypotheses} />
+
+          {/* Technician Live GPS Marker */}
           {techLocation && (
             <Marker position={techLocation} icon={createTechLocationIcon()}>
               <Popup>
                 <div className="p-1 text-center text-xs">
-                  <p className="font-bold text-sky-700">Your Current Location</p>
-                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">Live GPS Active</p>
+                  <p className="font-bold text-sky-700">Your GPS Location</p>
+                  <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                    Field Technician
+                  </p>
                 </div>
               </Popup>
             </Marker>
           )}
 
-          {/* B. Work Order Pins */}
-          {tasksWithCoords.map((task) => {
-            const isP1 = task.severity_level === 'P1';
-            const isPendingVerif = task.status === 'PENDING_VERIFICATION';
-            
-            // Map pin icon status
+          {/* Render All Community Nodes (With Accurate 45s Stale Check) */}
+          {allNodes.map((node) => {
+            if (!node.latitude || !node.longitude) return null;
+            const nodeId = node.node_id;
+            const task = taskByNodeId[nodeId];
+            const rtdbNode = rtdbNodes?.[nodeId];
+            const leak = leakHypotheses?.[nodeId];
+
+            const rawTs = Number(rtdbNode?.telemetry?.timestamp || 0);
+            const ts = rawTs > 1e11 ? Math.floor(rawTs / 1000) : rawTs;
+            const isFresh = ts > 0 && Math.max(0, nowSec - ts) <= 45;
+            const liveFlow = isFresh
+              ? Number(rtdbNode?.telemetry?.flow_rate_lpm || 0)
+              : 0;
+            const effectiveNodeStatus = rtdbNode?.status || node.status;
+
+            const pos = [Number(node.latitude), Number(node.longitude)];
+            const shortCode = nodeId?.slice(-2) || '•';
+
             let pinStatus = 'NORMAL';
-            if (isP1) pinStatus = 'LEAK';
-            else if (isPendingVerif) pinStatus = 'SUSPICIOUS';
+            if (effectiveNodeStatus === 'MAINTENANCE') {
+              pinStatus = 'MAINTENANCE';
+            } else if (
+              task?.severity_level === 'P1' ||
+              task?.status === 'REPAIR_FAILED' ||
+              (isFresh && leak?.classification === 'LEAK')
+            ) {
+              pinStatus = 'LEAK';
+            } else if (task || (isFresh && leak?.classification === 'SUSPICIOUS')) {
+              pinStatus = 'SUSPICIOUS';
+            } else if (!isFresh) {
+              pinStatus = 'OFFLINE';
+            }
 
-            const pos = [Number(task.latitude), Number(task.longitude)];
-            const shortCode = task.node_id?.slice(-2) || '!';
-
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${task.latitude},${task.longitude}`;
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${node.latitude},${node.longitude}`;
 
             return (
               <Marker
-                key={task.incident_id}
+                key={nodeId}
                 position={pos}
                 icon={createNodeIcon(pinStatus, shortCode)}
+                eventHandlers={{
+                  click: () => task && setSelectedTask(task)
+                }}
               >
                 <Popup>
-                  <div className="p-1.5 space-y-2 text-xs min-w-[210px]">
-                    {/* Header */}
-                    <div className="border-b border-slate-100 pb-1.5">
+                  <div className="p-1.5 space-y-2.5 text-xs min-w-[220px]">
+                    <div className="border-b border-slate-100 pb-2">
                       <div className="flex items-center justify-between gap-1">
-                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full ${
-                          isP1 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {task.severity_level} Priority
+                        <span className="font-mono font-bold text-slate-800">
+                          {nodeId}
                         </span>
-                        <span className="text-[9px] text-slate-400 font-mono">
-                          {task.status.replace('_', ' ')}
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            pinStatus === 'LEAK'
+                              ? 'bg-rose-100 text-rose-700'
+                              : pinStatus === 'MAINTENANCE'
+                              ? 'bg-amber-100 text-amber-800'
+                              : isFresh
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {task
+                            ? task.status.replace('_', ' ')
+                            : isFresh
+                            ? `${liveFlow.toFixed(2)} LPM`
+                            : 'OFFLINE (>45s)'}
                         </span>
                       </div>
-                      <h4 className="font-black text-slate-900 mt-1">
-                        {task.household_label || task.node_id}
+                      <h4 className="font-black text-slate-900 text-sm mt-1">
+                        {node.household_label}
                       </h4>
-                      <p className="text-[10px] text-slate-500 font-mono">
-                        {task.purok_cluster} • {task.node_id}
+                      <p className="text-[10px] text-slate-500">
+                        {node.location_name} • Feeder:{' '}
+                        <strong className="font-mono">
+                          {node.parent_node_id || 'Main Reservoir'}
+                        </strong>
                       </p>
                     </div>
 
-                    {/* Problem Preview */}
-                    {task.repair_notes && (
-                      <p className="text-[11px] text-slate-600 line-clamp-2 bg-slate-50 p-1.5 rounded">
-                        {task.repair_notes}
+                    {task && (
+                      <p className="text-[11px] text-slate-600 line-clamp-2 bg-slate-50 p-2 rounded-lg">
+                        {task.action_directive || task.repair_notes}
                       </p>
                     )}
 
-                    {/* Actions */}
-                    <div className="pt-1 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
                       <a
                         href={mapsUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg transition"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2.5 py-2 rounded-lg transition"
                       >
                         <Navigation className="w-3 h-3 text-sky-600" />
-                        <span>Navigate</span>
+                        <span>Directions</span>
                       </a>
-
-                      <Link
-                        to={`/tasks/${task.incident_id}`}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-sky-600 hover:bg-sky-700 px-2.5 py-1 rounded-lg transition shadow-sm"
-                      >
-                        <span>Details</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </Link>
+                      {task && (
+                        <Link
+                          to={`/tasks/${task.incident_id}`}
+                          className="flex-1 inline-flex items-center justify-center gap-1 text-[11px] font-bold !text-white bg-slate-900 hover:bg-slate-800 px-2.5 py-2 rounded-lg transition"
+                        >
+                          <span>Workbench</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </Popup>
@@ -203,38 +340,57 @@ export default function MapPage() {
         </OsmMap>
       </div>
 
-      {/* 3. Bottom Carousel / Quick Task Drawer */}
-      {tasksWithCoords.length > 0 && (
-        <div className="absolute bottom-2 left-2 right-2 z-10 pointer-events-none">
-          <div className="flex gap-2 overflow-x-auto pb-1 pointer-events-auto">
-            {tasksWithCoords.map((task) => {
+      {/* Bottom Work Order Carousel */}
+      {activeTasks.length > 0 && (
+        <div className="absolute bottom-3 left-0 right-0 z-10 pointer-events-none">
+          <div className="flex gap-2 overflow-x-auto px-3 pb-1 pointer-events-auto snap-x [scrollbar-width:none]">
+            {activeTasks.map((task) => {
               const isSelected = selectedTask?.incident_id === task.incident_id;
               const isP1 = task.severity_level === 'P1';
 
               return (
-                <button
+                <div
                   key={task.incident_id}
-                  onClick={() => handleCenterOnTask(task)}
-                  className={`bg-white/95 backdrop-blur-md p-2.5 rounded-xl border text-left shadow-lg shrink-0 w-60 transition active:scale-95 ${
-                    isSelected ? 'ring-2 ring-sky-500 border-sky-400' : 'border-slate-200'
+                  className={`${glass} snap-start shrink-0 w-64 rounded-2xl flex items-stretch overflow-hidden transition ${
+                    isSelected ? '!ring-2 !ring-slate-900' : ''
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[10px] mb-1">
-                    <span className={`font-bold px-1.5 py-0.2 rounded-full ${
-                      isP1 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
-                    }`}>
-                      {task.severity_level}
-                    </span>
-                    <span className="font-mono text-slate-400">{task.node_id}</span>
-                  </div>
-                  <h5 className="text-xs font-bold text-slate-900 truncate">
-                    {task.household_label || task.node_id}
-                  </h5>
-                  <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                    <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                    <span>{task.purok_cluster}</span>
-                  </p>
-                </button>
+                  <button
+                    onClick={() => handleCenterOnTask(task)}
+                    className="flex-1 min-w-0 p-3 text-left active:bg-slate-50 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-1.5 text-[10px] mb-1">
+                      <span
+                        className={`font-bold px-1.5 py-0.5 rounded-full ${
+                          isP1
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {task.severity_level}
+                      </span>
+                      <span className="font-mono text-slate-500 truncate">
+                        {task.node_id}
+                      </span>
+                    </div>
+                    <h5 className="text-sm font-bold text-slate-900 truncate">
+                      {task.household_label || task.node_id}
+                    </h5>
+                    <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                      <span className="truncate">
+                        {task.location_name || task.purok_cluster}
+                      </span>
+                    </p>
+                  </button>
+                  <Link
+                    to={`/tasks/${task.incident_id}`}
+                    aria-label="Open work order"
+                    className="w-12 bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               );
             })}
           </div>
