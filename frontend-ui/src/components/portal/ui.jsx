@@ -13,9 +13,9 @@ export const inputClass =
   'w-full bg-white border border-slate-300 focus:border-[#0c4a6e] focus:ring-2 focus:ring-[#0c4a6e]/20 text-slate-900 px-3 py-2.5 h-11 rounded-md text-base outline-none transition placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-[#0c4a6e]';
 
 const btnBase =
-  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md text-sm font-semibold transition disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
+  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md text-sm font-semibold transition disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 tracking-wide';
 export const btnPrimary = `${btnBase} bg-[#0c4a6e] hover:bg-[#075985] text-white focus-visible:ring-[#0c4a6e]`;
-export const btnSecondary = `${btnBase} bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 focus-visible:ring-[#0c4a6e]`;
+export const btnSecondary = `${btnBase} bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 focus-visible:ring-[#0c4a6e]`;
 export const btnDanger = `${btnBase} bg-rose-700 hover:bg-rose-800 text-white focus-visible:ring-rose-700`;
 export const btnAccent = `${btnBase} bg-[#0c4a6e] hover:bg-[#075985] text-white focus-visible:ring-[#0c4a6e]`;
 
@@ -33,19 +33,19 @@ export function IconTile({ icon: Icon, className = '' }) {
   return <Icon className={`w-4 h-4 text-slate-500 ${className}`} />;
 }
 
-/** Plain section label — 14px semibold slate-600 */
+/** Plain section label — 13px semibold slate-700, uppercase tracked */
 export function Eyebrow({ children, className = '' }) {
   return (
-    <div className={`text-sm font-semibold text-slate-600 ${className}`}>
+    <div className={`text-xs font-semibold text-slate-600 uppercase tracking-widest ${className}`}>
       {children}
     </div>
   );
 }
 
-/** Form field label — 14px semibold slate-700 */
+/** Form field label — 13px semibold slate-800 (higher contrast) */
 export function Label({ children, className = '' }) {
   return (
-    <span className={`text-sm font-semibold text-slate-700 block ${className}`}>
+    <span className={`text-[13px] font-semibold text-slate-800 block ${className}`}>
       {children}
     </span>
   );
@@ -75,8 +75,8 @@ export function PageHeader({ title, subtitle, right }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="space-y-1 min-w-0">
-        <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
-        {subtitle && <p className="text-sm text-slate-600">{subtitle}</p>}
+        <h1 className="text-[1.5rem] font-bold text-slate-900 tracking-tight leading-tight">{title}</h1>
+        {subtitle && <p className="text-[0.9375rem] text-slate-600 leading-relaxed">{subtitle}</p>}
       </div>
       {right}
     </div>
@@ -87,12 +87,12 @@ export function PageHeader({ title, subtitle, right }) {
 export function StatTile({ label, value, unit, hint, loading = false }) {
   return (
     <div className="p-5 flex flex-col justify-between">
-      <span className="text-sm text-slate-600">{label}</span>
-      <div className="text-[32px] leading-tight font-semibold text-slate-900 tabular-nums my-1">
+      <span className="text-[0.8125rem] font-semibold text-slate-600 uppercase tracking-wide">{label}</span>
+      <div className="text-[2rem] leading-tight font-bold text-slate-900 tabular-nums my-1.5">
         {loading ? '—' : value}
-        {unit && <span className="text-sm font-semibold text-slate-600 ml-1">{unit}</span>}
+        {unit && <span className="text-sm font-semibold text-slate-500 ml-1.5">{unit}</span>}
       </div>
-      {hint && <p className="text-sm text-slate-600">{hint}</p>}
+      {hint && <p className="text-[0.875rem] text-slate-500">{hint}</p>}
     </div>
   );
 }
@@ -104,7 +104,7 @@ export function Skeleton({ className = '' }) {
 /** Plain one-line empty state with optional link */
 export function EmptyState({ title, action }) {
   return (
-    <div className="py-6 text-sm text-slate-600">
+    <div className="py-8 text-[0.9375rem] text-slate-500">
       {title}{action && <> · {action}</>}
     </div>
   );

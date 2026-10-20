@@ -33,18 +33,23 @@
   --aquila-danger-bg: #fee2e2;
   --aquila-text-muted: #475569;
 
-  /* Typography scale */
-  --font-h1: clamp(2.5rem, 5vw, 4rem);
-  --font-h2: clamp(1.75rem, 3.5vw, 2.5rem);
+  /* Typography scale — clear hierarchy, not flat */
+  --font-h1: clamp(2.25rem, 4.5vw, 3.5rem);
+  --font-h2: clamp(1.5rem, 3vw, 2.25rem);
   --font-h3: 1.125rem;
   --font-body: 1rem;
-  --font-small: 0.875rem;
-  --font-stack: 'Lucida Sans Unicode', 'Lucida Grande', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-small: 0.9rem;         /* was 0.875 — bumped up for legibility */
+  --font-stack: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 
   /* Spacing scale */
   --section-py: 64px;
   --gap-grid: 24px;
   --card-pad: 24px;
+
+  /* Text contrast — WCAG AA compliant values */
+  --text-primary: #0f172a;      /* slate-950: 18:1 on white */
+  --text-secondary: #374151;    /* gray-700: 10.7:1 on white (was slate-400-ish) */
+  --text-muted: #4b5563;        /* gray-600: 7.2:1 on white */
 }
 
 /* ========================================
@@ -65,9 +70,11 @@ body,
 
 body {
   font-family: var(--font-stack);
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  -webkit-font-smoothing: antialiased;
   color: var(--text-primary);
   background: #fff;
-  line-height: 1.6;
+  line-height: 1.65;
   font-size: var(--font-body);
 }
 
@@ -120,7 +127,8 @@ button:focus-visible {
 
 .aquila-home p {
   color: var(--text-secondary);
-  font-size: var(--font-body);
+  font-size: 1.0625rem;    /* 17px — more comfortable reading size */
+  line-height: 1.7;
 }
 
 /* 1200px shared container */
@@ -197,22 +205,23 @@ button:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-radius: 4px;
+  border-radius: 6px;      /* was 4px pill — more structured */
   padding: 10px 20px;
   min-height: 44px;
   font-weight: 600;
   font-size: var(--font-small);
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition: background 0.18s ease, transform 0.15s ease;
 }
 
 .header-login {
   background: #fff;
-  border-radius: 20px;
+  border-radius: 6px;      /* was 20px pill — now structured */
   color: var(--aquila-blue-dark);
   font-size: 15px;
-  padding: 8px 20px;
+  padding: 8px 22px;
   min-height: 44px;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .header-login:hover {
@@ -254,8 +263,8 @@ button:focus-visible {
 .hero-copy h1 {
   margin-bottom: 22px;
   font-size: var(--font-h1);
-  line-height: 1.08;
-  letter-spacing: -0.04em;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
   font-weight: 700;
   color: var(--aquila-navy);
 }
@@ -268,9 +277,9 @@ button:focus-visible {
 .hero-description {
   max-width: 520px;
   margin-bottom: 28px;
-  font-size: 1.05rem;
+  font-size: 1.0625rem;   /* 17px — readable body */
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .eyebrow {
@@ -357,9 +366,9 @@ button:focus-visible {
   width: 100%;
   max-width: 580px;
   padding: var(--card-pad);
-  border: 3px solid var(--aquila-navy);
-  border-radius: 18px;
-  box-shadow: 0 8px 32px rgb(15 23 42 / 8%);
+  border: 2px solid var(--aquila-navy);
+  border-radius: 10px;     /* was 18px — more structured, less bubbly */
+  box-shadow: 0 4px 20px rgb(15 23 42 / 7%);
   background: #ffffff;
 }
 
@@ -411,16 +420,18 @@ button:focus-visible {
 }
 
 .stat-number {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: 1.875rem;     /* slightly larger for visual hierarchy */
+  font-weight: 700;
   color: var(--aquila-navy);
   line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
   font-size: var(--font-small);
-  color: var(--text-secondary);
+  color: var(--text-muted);   /* use muted, not secondary — still passes AA */
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 /* Hero visual container */
@@ -497,9 +508,10 @@ button:focus-visible {
 .detail-card {
   min-width: 0;
   padding: var(--card-pad);
-  border-radius: 14px;
+  border-radius: 8px;      /* was 14px — structured, not bubbly */
   background: #fff;
-  box-shadow: 0 2px 8px rgb(2 132 199 / 5%);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgb(15 23 42 / 4%);
 }
 
 .problem-card h3,
@@ -513,9 +525,9 @@ button:focus-visible {
 .problem-card p,
 .feature-card p {
   margin-bottom: 0;
-  font-size: var(--font-body);
+  font-size: 0.9375rem;    /* 15px — comfortable card body */
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 /* ========================================
@@ -526,9 +538,9 @@ button:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 40px;             /* slightly tighter */
+  height: 40px;
+  border-radius: 8px;      /* was 12px */
   background: var(--aquila-blue-light);
   color: var(--aquila-blue);
 }
@@ -700,8 +712,9 @@ button:focus-visible {
   justify-content: space-between;
   gap: 20px;
   padding: var(--card-pad);
-  border: 3px solid var(--aquila-navy);
-  border-radius: 12px;
+  border: 1.5px solid #cbd5e1;
+  border-left: 3px solid var(--aquila-navy);
+  border-radius: 8px;      /* was 12px */
   background: #fff;
   height: 100%;
 }
@@ -713,16 +726,16 @@ button:focus-visible {
 
 .step-card h3 {
   margin-bottom: 6px;
-  font-size: var(--font-h3);
+  font-size: 1.0625rem;    /* 17px — distinct from body */
   font-weight: 600;
   color: var(--aquila-navy);
 }
 
 .step-card p {
   margin-bottom: 0;
-  font-size: var(--font-body);
+  font-size: 0.9375rem;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 .step-number {
@@ -751,9 +764,10 @@ button:focus-visible {
   gap: 28px;
   margin-top: 50px;
   padding: var(--card-pad);
-  border-radius: 16px;
+  border-radius: 8px;      /* was 16px */
   background: #fff;
-  border: 2px solid var(--border-subtle);
+  border: 1.5px solid #cbd5e1;
+  border-left: 4px solid var(--aquila-blue);
   z-index: 2;
 }
 
@@ -853,7 +867,9 @@ button:focus-visible {
 .public-footer .footer-column h3 {
   margin: 0 0 8px;
   color: #f0f9ff;
-  font-size: 1.15rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .public-footer .footer-column a,

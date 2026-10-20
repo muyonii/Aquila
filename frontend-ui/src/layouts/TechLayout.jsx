@@ -103,7 +103,7 @@ export default function TechLayout() {
       <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between sticky top-0 z-40">
         <Brand
           suffix={
-            <span className="hidden sm:inline text-xs font-semibold text-slate-700 border border-slate-300 rounded-md px-2 py-0.5">
+            <span className="hidden sm:inline text-[11px] font-bold text-slate-600 border border-slate-300 rounded px-2 py-0.5 tracking-wide uppercase">
               Field
             </span>
           }
@@ -116,10 +116,10 @@ export default function TechLayout() {
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
+                `flex items-center gap-2 px-3.5 py-2 rounded-md text-[0.9375rem] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
                   isActive
-                    ? 'border-b-2 border-[#0c4a6e] bg-slate-50 text-slate-900'
-                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-b-2 border-transparent'
+                    ? 'border-b-[3px] border-[#0c4a6e] bg-slate-50 text-slate-900 font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border-b-[3px] border-transparent'
                 }`
               }
             >

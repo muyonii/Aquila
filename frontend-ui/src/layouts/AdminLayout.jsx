@@ -118,10 +118,10 @@ export default function AdminLayout() {
                     to={item.to}
                     title={!isExpanded ? item.label : undefined}
                     className={({ isActive }) =>
-                      `group flex items-center gap-3 px-3.5 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] focus-visible:outline-none ${
+                      `group flex items-center gap-3 px-3.5 py-2.5 text-[0.9375rem] transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] focus-visible:outline-none ${
                         isActive
-                          ? 'border-l-2 border-[#0c4a6e] bg-slate-100 text-slate-900 font-semibold'
-                          : 'border-l-2 border-transparent text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-normal'
+                          ? 'border-l-[3px] border-[#0c4a6e] bg-slate-100 text-slate-900 font-semibold'
+                          : 'border-l-[3px] border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-normal'
                       } ${!isExpanded ? 'justify-center px-0' : ''}`
                     }
                   >
@@ -179,10 +179,10 @@ export default function AdminLayout() {
                     {userInitials}
                   </div>
                   <div className="overflow-hidden">
-                    <div className="text-sm font-semibold text-slate-900 truncate leading-tight">
+                    <div className="text-[0.9375rem] font-semibold text-slate-900 truncate leading-tight">
                       {user?.full_name || 'System Admin'}
                     </div>
-                    <div className="text-xs text-slate-600 truncate mt-0.5">
+                    <div className="text-xs text-slate-500 truncate mt-0.5">
                       {user?.email || 'admin@bawasa.gov.ph'}
                     </div>
                   </div>
