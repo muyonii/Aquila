@@ -19,10 +19,60 @@ export const useAuthStore = create((set, get) => ({
   error: null,
 
   /**
-   * 1. Standard Email & Password Login
+   * 1. Standard Email & Password Login (Supports hardcoded demo credentials)
    */
   login: async (email, password, remember = true) => {
     set({ isLoading: true, error: null });
+
+    const clean = (email || '').trim().toLowerCase();
+    const MOCK_ACCOUNTS = {
+      admin: {
+        user_id: 1,
+        full_name: 'System Admin Officer',
+        email: 'admin@bawasa.gov.ph',
+        role: 'admin',
+        approval_status: 'APPROVED',
+      },
+      tech: {
+        user_id: 2,
+        full_name: 'Juan Santos',
+        email: 'technician@bawasa.gov.ph',
+        role: 'technician',
+        approval_status: 'APPROVED',
+      },
+      resident: {
+        user_id: 3,
+        full_name: 'Maria Dela Cruz',
+        email: 'resident1@gmail.com',
+        role: 'resident',
+        assigned_node_id: 'NODE-B1-001',
+        approval_status: 'APPROVED',
+      },
+    };
+
+    let mockUser = null;
+    if (clean === 'admin' || clean === 'admin@bawasa.gov.ph' || clean === 'aquila.admin@gmail.com') {
+      mockUser = MOCK_ACCOUNTS.admin;
+    } else if (clean === 'tech' || clean === 'technician' || clean === 'technician@bawasa.gov.ph' || clean === 'aquila.tech@gmail.com') {
+      mockUser = MOCK_ACCOUNTS.tech;
+    } else if (clean === 'resident' || clean === 'resident1@gmail.com') {
+      mockUser = MOCK_ACCOUNTS.resident;
+    }
+
+    if (mockUser) {
+      const token = `mock_token_${mockUser.role}`;
+      localStorage.setItem('aquila_token', token);
+      localStorage.setItem('aquila_user', JSON.stringify(mockUser));
+      set({
+        user: mockUser,
+        token,
+        refreshToken: null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return { success: true, user: mockUser };
+    }
+
     try {
       const res = await authApi.login(email, password, remember);
       if (res?.success && res.data) {
@@ -140,6 +190,19 @@ export const useAuthStore = create((set, get) => ({
     if (!token) {
       set({ isAuthenticated: false, user: null });
       return;
+    }
+
+    if (token.startsWith('mock_token_')) {
+      const saved = getSavedUser();
+      if (saved) {
+        set({
+          user: saved,
+          token,
+          isAuthenticated: true,
+          isLoading: false
+        });
+        return;
+      }
     }
 
     set({ isLoading: true });
