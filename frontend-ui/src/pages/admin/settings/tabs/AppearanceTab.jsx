@@ -23,30 +23,30 @@ export default function AppearanceTab() {
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
         <span>Appearance & display</span>
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
         Adjust text scaling and workspace lighting to fit your screen.
         </p>
       </div>
 
-      <div className="bg-white rounded-xl p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+      <div className="bg-white rounded-control p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
         {/* Theme Picker */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Theme</h3>
-            <p className="text-[11px] text-[#86868b]">Workspace lighting preference.</p>
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Theme</h3>
+            <p className="text-[0.8125rem] text-slate-600">Workspace lighting preference.</p>
           </div>
-          <div className="flex rounded-lg bg-[#efeff1] p-0.5 text-xs font-medium">
+          <div className="flex rounded-lg bg-slate-50 p-0.5 text-[0.8125rem] font-medium">
             {['light', 'dark', 'system'].map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => selectTheme(t)}
                 className={`px-3 py-1 rounded-md capitalize cursor-pointer transition-colors ${
-                  theme === t ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold' : 'text-[#86868b]'
-                }`}
+ theme === t ? 'bg-white text-slate-900 shadow-xs font-semibold': 'text-slate-600'
+ }`}
               >
                 {t}
               </button>
@@ -56,17 +56,17 @@ export default function AppearanceTab() {
 
         {/* Dynamic Scale */}
         <div className="pt-2">
-          <h3 className="text-xs font-bold text-[#1d1d1f] mb-2">Display Readability Scale</h3>
+          <h3 className="text-[0.8125rem] font-semibold text-slate-900 mb-2">Display Readability Scale</h3>
           <TextScaleSlider value={textScale} onChange={handleScaleChange} />
         </div>
       </div>
 
       {/* Accessibility Card */}
-      <div className="bg-white rounded-xl p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+      <div className="bg-white rounded-control p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold text-[#1d1d1f]">High Contrast (Glare Mode)</h3>
-            <p className="text-[11px] text-[#86868b]">Sharpens borders and darkens text for bright sunlight in barangay offices.</p>
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">High Contrast (Glare Mode)</h3>
+            <p className="text-[0.8125rem] text-slate-600">Sharpens borders and darkens text for bright sunlight in barangay offices.</p>
           </div>
           <AppleToggle
             checked={highContrast}
@@ -79,8 +79,8 @@ export default function AppearanceTab() {
 
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Reduce Motion</h3>
-            <p className="text-[11px] text-[#86868b]">Turns off slide animations for faster performance on older desktops.</p>
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Reduce Motion</h3>
+            <p className="text-[0.8125rem] text-slate-600">Turns off slide animations for faster performance on older desktops.</p>
           </div>
           <AppleToggle
             checked={reduceMotion}

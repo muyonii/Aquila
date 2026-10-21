@@ -53,43 +53,43 @@ export default function ResidentLayout() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f4f5f8] text-slate-800 font-sans relative">
+    <div className="min-h-screen flex flex-col bg-canvas text-ink font-sans relative">
       <AmbientWash />
 
       {/* Top bar */}
-      <header className="h-14 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+      <header className="h-16 bg-white border-b border-line px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
         <Brand
           suffix={
-            <span className="hidden sm:inline text-[11px] font-bold text-slate-600 border border-slate-300 rounded px-2 py-0.5 tracking-wide uppercase">
+            <span className="hidden sm:inline text-xs font-semibold text-ink-muted border border-line rounded-tile px-2 py-0.5 tracking-wide uppercase">
               Resident
             </span>
           }
         />
 
         {/* Desktop navigation */}
-        <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
+        <nav className="hidden md:flex items-center gap-1.5" aria-label="Primary">
           {NAV_ITEMS.map(({ name, path, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3.5 py-2 rounded-md text-[0.9375rem] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
+                `flex items-center gap-2 px-3.5 py-2 rounded-tile text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-brand ${
                   isActive
-                    ? 'border-b-[3px] border-[#0c4a6e] bg-slate-50 text-slate-900 font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border-b-[3px] border-transparent'
+                    ? 'bg-white shadow-soft text-ink font-semibold border border-line'
+                    : 'text-ink-muted hover:text-ink hover:bg-canvas border border-transparent'
                 }`
               }
             >
-              <Icon className="w-4 h-4 stroke-[1.75] text-slate-500" />
+              <Icon className="w-[18px] h-[18px] stroke-[1.75] text-ink-muted shrink-0" />
               <span>{name}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           {/* Meter Stream Status — dot + label */}
           <span
-            className="inline-flex items-center gap-1.5 text-sm font-semibold"
+            className="inline-flex items-center gap-1.5 text-sm font-medium"
             title={
               isMeterStreaming
                 ? `Meter ${assignedNode} is actively streaming`
@@ -97,17 +97,17 @@ export default function ResidentLayout() {
             }
           >
             <span
-              className={`w-2 h-2 rounded-full shrink-0 ${
-                isMeterStreaming ? 'bg-emerald-600' : isConnected ? 'bg-slate-400' : 'bg-rose-600'
+              className={`status-dot ${
+                isMeterStreaming ? 'ok' : isConnected ? 'neutral bg-slate-400' : 'danger'
               }`}
             />
-            <span className={isMeterStreaming ? 'text-emerald-700' : isConnected ? 'text-slate-600' : 'text-rose-700'}>
+            <span className={isMeterStreaming ? 'text-state-ok font-semibold' : isConnected ? 'text-ink-muted' : 'text-state-danger font-semibold'}>
               {isMeterStreaming ? 'Meter Live' : isConnected ? 'Meter Idle' : 'Offline'}
             </span>
           </span>
 
           <div
-            className="hidden sm:flex w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-semibold text-xs items-center justify-center"
+            className="hidden sm:flex w-8 h-8 rounded-full bg-white border border-line text-ink font-semibold text-xs items-center justify-center"
             title={user?.full_name}
           >
             {initials(user?.full_name)}
@@ -116,44 +116,44 @@ export default function ResidentLayout() {
             onClick={handleLogout}
             title="Sign out"
             aria-label="Sign out"
-            className="p-2 rounded-md text-slate-600 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+            className="p-2.5 rounded-control text-ink-muted hover:text-state-danger hover:bg-canvas transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-state-danger"
           >
-            <LogOut className="w-4 h-4 stroke-[2]" />
+            <LogOut className="w-[18px] h-[18px] stroke-[1.75]" />
           </button>
         </div>
       </header>
 
       {/* Page content */}
-      <main className="relative z-10 flex-1 max-w-4xl w-full mx-auto p-4 sm:p-6 pb-28 md:pb-8">
+      <main className="relative z-10 flex-1 max-w-4xl w-full mx-auto p-6 pb-28 md:pb-8">
         <Outlet />
       </main>
 
       {/* Mobile bottom navigation */}
       <nav
         aria-label="Primary"
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-line pb-[env(safe-area-inset-bottom)] shadow-soft"
       >
-        <div className="h-16 grid grid-cols-4">
+        <div className="h-16 grid grid-cols-4 px-2 items-center">
           {NAV_ITEMS.map(({ short, path, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}
-              className="flex flex-col items-center justify-center gap-1 focus-visible:outline-none"
+              className="flex flex-col items-center justify-center gap-1 min-h-[44px] py-1 focus-visible:outline-none"
             >
               {({ isActive }) => (
                 <>
                   <span
-                    className={`w-12 h-7 rounded-full flex items-center justify-center transition-colors ${
-                      isActive ? 'bg-[#0c4a6e] text-white' : 'text-slate-600'
+                    className={`px-3 py-1 rounded-pill flex items-center justify-center transition-all ${
+                      isActive ? 'bg-white shadow-soft text-ink font-semibold border border-line' : 'text-ink-muted border border-transparent'
                     }`}
                   >
-                    <Icon className="w-4 h-4 stroke-[2]" />
+                    <Icon className="w-[18px] h-[18px] stroke-[1.75]" />
                   </span>
                   <span
                     className={`text-xs ${
                       isActive
-                        ? 'font-bold text-[#0c4a6e]'
-                        : 'font-medium text-slate-600'
+                        ? 'font-semibold text-ink'
+                        : 'font-medium text-ink-muted'
                     }`}
                   >
                     {short}

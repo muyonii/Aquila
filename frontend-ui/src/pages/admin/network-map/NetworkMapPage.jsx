@@ -278,7 +278,7 @@ export default function NetworkMapPage() {
   const leakCount = nodes.filter((n) => n.isLeaking()).length;
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] sm:h-screen overflow-hidden select-none font-sans bg-[#f4f5f8]">
+    <div className="relative w-full h-[calc(100vh-4rem)] sm:h-screen overflow-hidden select-none font-sans bg-canvas">
       <MapContainer
         center={SECTOR_CENTER}
         zoom={17}
@@ -343,7 +343,7 @@ export default function NetworkMapPage() {
               }}
             >
               <Tooltip direction="top" offset={[0, -14]}>
-                <div className="text-[11px] font-sans">
+                <div className="text-[0.8125rem] font-sans">
                   <strong className="font-mono">{node.id}</strong> — {node.label}
                 </div>
               </Tooltip>
@@ -365,7 +365,7 @@ export default function NetworkMapPage() {
             }}
           >
             <Tooltip permanent direction="top" offset={[0, -16]}>
-              <span className="text-[11px] font-semibold">
+              <span className="text-[0.8125rem] font-semibold">
                 {draftNode.suggestedId}: Drag or click map to position
               </span>
             </Tooltip>

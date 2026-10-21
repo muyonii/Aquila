@@ -28,37 +28,37 @@ export default function WorkforceView({ data }) {
       
       {/* Workforce Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.03)] space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+        <div className="aq-surface rounded-card p-4 border border-line shadow-soft space-y-1">
+          <span className="text-[0.8125rem] font-semibold text-slate-600 block">
             On-Duty Plumbers
           </span>
-          <div className="text-2xl font-black text-slate-900">{technicians.length}</div>
-          <span className="text-[11px] text-slate-500">Active maintenance personnel</span>
+          <div className="text-2xl font-semibold text-slate-900">{technicians.length}</div>
+          <span className="text-[0.8125rem] text-slate-600">Active maintenance personnel</span>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.03)] space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+        <div className="aq-surface rounded-card p-4 border border-line shadow-soft space-y-1">
+          <span className="text-[0.8125rem] font-semibold text-slate-600 block">
             Total Dispatches Handled
           </span>
-          <div className="text-2xl font-black text-slate-900">{totalDispatches}</div>
-          <span className="text-[11px] text-slate-500">Work orders assigned</span>
+          <div className="text-2xl font-semibold text-slate-900">{totalDispatches}</div>
+          <span className="text-[0.8125rem] text-slate-600">Work orders assigned</span>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.03)] space-y-1">
-          <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase block">
+        <div className="aq-surface rounded-card p-4 border border-line shadow-soft space-y-1">
+          <span className="text-[0.8125rem] font-semibold text-slate-600 block">
             Verification Success Rate
           </span>
-          <div className="text-2xl font-black text-emerald-700">{passRate}</div>
-          <span className="text-[11px] text-slate-500">15-minute quiet verification pass</span>
+          <div className="text-2xl font-semibold text-emerald-700">{passRate}</div>
+          <span className="text-[0.8125rem] text-slate-600">15-minute quiet verification pass</span>
         </div>
       </div>
 
       {/* Technician Performance Table */}
-      <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="aq-surface rounded-card border border-line shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-black/[0.05] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-black/[0.05] text-[0.8125rem] font-semibold text-slate-600 ">
                 <th className="py-3 px-4 pl-6">Technician Name</th>
                 <th className="py-3 px-4">Total Assigned</th>
                 <th className="py-3 px-4">Verified Closures</th>
@@ -69,26 +69,26 @@ export default function WorkforceView({ data }) {
             <tbody className="divide-y divide-black/[0.03]">
               {technicians.map((tech) => (
                 <tr key={tech.user_id} className="hover:bg-black/[0.02] transition-colors">
-                  <td className="py-3.5 px-4 pl-6 font-semibold text-xs text-slate-900">
+                  <td className="py-3.5 px-4 pl-6 font-semibold text-[0.8125rem] text-slate-900">
                     {tech.technician_name}
                   </td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-slate-800">
+                  <td className="py-3.5 px-4 font-mono text-[0.8125rem] text-slate-800">
                     {tech.total_assigned}
                   </td>
-                  <td className="py-3.5 px-4 font-mono text-xs font-bold text-emerald-700">
+                  <td className="py-3.5 px-4 font-mono text-[0.8125rem] font-semibold text-emerald-700">
                     {tech.completed_verified}
                   </td>
-                  <td className="py-3.5 px-4 font-mono text-xs text-rose-600">
+                  <td className="py-3.5 px-4 font-mono text-[0.8125rem] text-rose-600">
                     {tech.failed_inspections}
                   </td>
-                  <td className="py-3.5 px-4 pr-6 text-right font-mono text-xs text-slate-600">
+                  <td className="py-3.5 px-4 pr-6 text-right font-mono text-[0.8125rem] text-slate-600">
                     {tech.in_progress}
                   </td>
                 </tr>
               ))}
               {technicians.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-10 text-center text-xs text-slate-400">
+                  <td colSpan={5} className="py-10 text-center text-[0.8125rem] text-slate-600">
                     No technician records found.
                   </td>
                 </tr>

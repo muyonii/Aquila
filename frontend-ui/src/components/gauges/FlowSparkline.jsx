@@ -8,7 +8,7 @@ export default function FlowSparkline({
   if (!data || data.length < 2) {
     return (
       <div 
-        className="flex items-center justify-center bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 px-2"
+        className="flex items-center justify-center bg-canvas border border-line rounded-tile text-xs text-ink-muted px-2"
         style={{ height }}
       >
         Awaiting telemetry...
@@ -32,8 +32,8 @@ export default function FlowSparkline({
   });
 
   const pathD = `M ${points.join(' L ')}`;
-  const strokeColor = isLeak ? '#b91c1c' : '#0c4a6e';
-  const fillColor = isLeak ? '#fee2e2' : '#e0f2fe';
+  const strokeColor = isLeak ? '#b42318' : '#0c4a6e';
+  const fillColor = isLeak ? '#fef2f2' : '#bcd8e6';
 
   return (
     <div className="inline-block relative">
@@ -41,7 +41,7 @@ export default function FlowSparkline({
         <polygon
           points={`${padding},${height - padding} ${points.join(' ')} ${width - padding},${height - padding}`}
           fill={fillColor}
-          opacity="0.3"
+          opacity="0.5"
         />
         <path
           d={pathD}

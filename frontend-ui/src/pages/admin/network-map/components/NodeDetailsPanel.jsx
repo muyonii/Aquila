@@ -77,21 +77,21 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
 
   return (
     <aside
-      className="absolute top-6 bottom-6 right-6 w-full sm:w-[380px] z-40 bg-white/80 backdrop-blur-2xl rounded-3xl border border-white/90 shadow-[0_20px_50px_rgba(0,0,0,0.12)] p-6 overflow-y-auto flex flex-col justify-between select-none font-sans animate-in slide-in-from-right duration-200 [scrollbar-width:thin]"
+      className="absolute top-6 bottom-6 right-6 w-full sm:w-[380px] z-40 bg-white rounded-card border border-line shadow-soft p-6 overflow-y-auto flex flex-col justify-between select-none font-sans animate-in slide-in-from-right duration-200 [scrollbar-width:thin]"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="space-y-5">
         
         {/* Header Lockup */}
         <div className="flex items-center justify-between pb-2 border-b border-black/[0.05]">
-          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase flex items-center gap-1.5">
-            <Radio className="h-3 w-3 text-[#007aff]" />
+          <span className="text-[0.8125rem] font-mono font-semibold text-slate-600 flex items-center gap-1.5">
+            <Radio className="h-3 w-3 text-[#0c4a6e]" />
             <span>Live Node Telemetry</span>
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-black/[0.05] text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-black/[0.05] text-slate-600 hover:text-slate-800 transition-colors cursor-pointer"
             title="Close (Esc)"
           >
             <X className="h-4 w-4" />
@@ -104,68 +104,68 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
             <div className="flex items-center gap-2">
               <span
                 className={`h-2.5 w-2.5 rounded-full ${
-                  node.isLeaking()
-                    ? 'bg-rose-500 animate-ping'
-                    : node.isMaintenance()
-                    ? 'bg-amber-500'
-                    : 'bg-emerald-500'
-                }`}
+ node.isLeaking()
+ ? 'bg-rose-500 animate-ping'
+ : node.isMaintenance()
+ ? 'bg-amber-500'
+ : 'bg-emerald-500'
+ }`}
               />
-              <h3 className="text-base font-bold text-slate-900 leading-tight">
+              <h3 className="text-base font-semibold text-slate-900 leading-tight">
                 {node.label}
               </h3>
             </div>
             
             {/* Live Connection Light */}
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${
-                isOnline
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'bg-slate-100 text-slate-500 border border-slate-200'
-              }`}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.8125rem] font-mono font-semibold ${
+ isOnline
+ ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+ : 'bg-slate-100 text-slate-600 border border-slate-200'
+ }`}
             >
               {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
               <span>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
             </span>
           </div>
 
-          <p className="text-xs font-mono text-slate-400 mt-1">
+          <p className="text-[0.8125rem] font-mono text-slate-600 mt-1">
             {node.id} • {node.cluster}
           </p>
         </div>
 
         {/* Inset Card 1: Live Sensor Stream (Firebase RTDB) */}
-        <div className="bg-white/70 backdrop-blur-md rounded-2xl p-4 border border-white/90 shadow-2xs space-y-3">
-          <div className="flex items-center justify-between text-xs">
+        <div className="aq-surface rounded-card p-4 border border-line shadow-2xs space-y-3">
+          <div className="flex items-center justify-between text-[0.8125rem]">
             <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-              <Droplets className="h-3.5 w-3.5 text-[#007aff]" />
+              <Droplets className="h-3.5 w-3.5 text-[#0c4a6e]" />
               <span>Real-Time Sensor Flow</span>
             </span>
             {packetAge !== null && (
-              <span className="text-[10px] font-mono text-slate-400">
+              <span className="text-[0.8125rem] font-mono text-slate-600">
                 {packetAge}s ago
               </span>
             )}
           </div>
 
           {loadingTelemetry ? (
-            <div className="py-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <div className="py-4 text-center text-[0.8125rem] text-slate-600 flex items-center justify-center gap-2">
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
               <span>Connecting to Firebase stream...</span>
             </div>
           ) : telemetry ? (
-            <div className="space-y-2 text-xs">
+            <div className="space-y-2 text-[0.8125rem]">
               {/* Instantaneous Flow Velocity */}
               <div className="flex justify-between items-center py-1 border-b border-black/[0.04]">
-                <span className="text-slate-500">Flow Velocity</span>
-                <span className="font-mono font-bold text-slate-900">
+                <span className="text-slate-600">Flow Velocity</span>
+                <span className="font-mono font-semibold text-slate-900">
                   {flowRate.toFixed(2)} L/min
                 </span>
               </div>
 
               {/* Odometer Consumption */}
               <div className="flex justify-between items-center py-1 border-b border-black/[0.04]">
-                <span className="text-slate-500">Total Odometer</span>
+                <span className="text-slate-600">Total Odometer</span>
                 <span className="font-mono font-semibold text-slate-800">
                   {totalLiters.toFixed(1)} L ({totalM3} m³)
                 </span>
@@ -174,14 +174,14 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
               {/* Battery Voltage */}
               {batteryVolts !== null && (
                 <div className="flex justify-between items-center py-1 border-b border-black/[0.04]">
-                  <span className="text-slate-500 flex items-center gap-1">
-                    <Battery className={`h-3 w-3 ${isLowBattery ? 'text-rose-500' : 'text-slate-500'}`} />
+                  <span className="text-slate-600 flex items-center gap-1">
+                    <Battery className={`h-3 w-3 ${isLowBattery ? 'text-rose-500': 'text-slate-600'}`} />
                     <span>Battery Voltage</span>
                   </span>
                   <span
                     className={`font-mono font-semibold ${
-                      isLowBattery ? 'text-rose-600 font-bold' : 'text-slate-800'
-                    }`}
+ isLowBattery ? 'text-rose-600 font-semibold': 'text-slate-800'
+ }`}
                   >
                     {batteryVolts.toFixed(2)} V {isLowBattery && '(Low Battery)'}
                   </span>
@@ -190,40 +190,40 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
 
               {/* Provenance */}
               <div className="flex justify-between items-center py-1">
-                <span className="text-slate-500">Sensor Provenance</span>
+                <span className="text-slate-600">Sensor Provenance</span>
                 <span className="font-medium text-slate-700">
                   {telemetry.is_simulated ? 'Software Simulator' : 'Physical ESP32 Turbine'}
                 </span>
               </div>
             </div>
           ) : (
-            <div className="py-3 text-center text-xs text-slate-400">
+            <div className="py-3 text-center text-[0.8125rem] text-slate-600">
               No telemetry packet broadcast yet.
             </div>
           )}
         </div>
 
         {/* Inset Card 2: AI Multi-Agent Hypotheses (Blackboard) */}
-        <div className="bg-white/70 backdrop-blur-md rounded-2xl p-4 border border-white/90 shadow-2xs space-y-2.5 text-xs">
-          <span className="font-semibold text-slate-800 block text-[11px] uppercase tracking-wider">
+        <div className="aq-surface rounded-card p-4 border border-line shadow-2xs space-y-2.5 text-[0.8125rem]">
+          <span className="font-semibold text-slate-800 block text-[0.8125rem] ">
             Agent Intelligence (Blackboard)
           </span>
 
           <div className="space-y-2">
             {/* Leak Agent Classification */}
             <div className="flex justify-between items-center py-1 border-b border-black/[0.04]">
-              <span className="text-slate-500 flex items-center gap-1">
-                <Activity className="h-3 w-3 text-slate-400" />
+              <span className="text-slate-600 flex items-center gap-1">
+                <Activity className="h-3 w-3 text-slate-600" />
                 <span>Leak Classification</span>
               </span>
               <span
                 className={`font-semibold ${
-                  leakHypothesis?.classification === 'LEAK'
-                    ? 'text-rose-600 font-bold'
-                    : leakHypothesis?.classification === 'SUSPICIOUS'
-                    ? 'text-amber-600'
-                    : 'text-emerald-700'
-                }`}
+ leakHypothesis?.classification === 'LEAK'
+ ? 'text-rose-600 font-semibold'
+ : leakHypothesis?.classification === 'SUSPICIOUS'
+ ? 'text-amber-600'
+ : 'text-emerald-700'
+ }`}
               >
                 {leakHypothesis?.classification || 'NORMAL'}
               </span>
@@ -231,16 +231,16 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
 
             {/* Fairness Agent RDI Score */}
             <div className="flex justify-between items-center py-1">
-              <span className="text-slate-500 flex items-center gap-1">
-                <Scale className="h-3 w-3 text-slate-400" />
+              <span className="text-slate-600 flex items-center gap-1">
+                <Scale className="h-3 w-3 text-slate-600" />
                 <span>Fairness Share (RDI)</span>
               </span>
               <span
                 className={`font-mono font-semibold ${
-                  fairnessHypothesis?.is_disadvantaged
-                    ? 'text-amber-600 font-bold'
-                    : 'text-slate-800'
-                }`}
+ fairnessHypothesis?.is_disadvantaged
+ ? 'text-amber-600 font-semibold'
+ : 'text-slate-800'
+ }`}
               >
                 {fairnessHypothesis?.rdi_score
                   ? `${fairnessHypothesis.rdi_score} ${fairnessHypothesis.is_disadvantaged ? '(Deficit)' : '(Fair)'}`
@@ -251,15 +251,15 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
         </div>
 
         {/* Inset Card 3: Pipe Line Feeder & GPS */}
-        <div className="bg-white/70 backdrop-blur-md rounded-2xl p-4 border border-white/90 shadow-2xs space-y-2 text-xs">
+        <div className="aq-surface rounded-card p-4 border border-line shadow-2xs space-y-2 text-[0.8125rem]">
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">Parent Feeder Pipe</span>
-            <span className="font-mono text-[#007aff] font-semibold">
+            <span className="text-slate-600">Parent Feeder Pipe</span>
+            <span className="font-mono text-[#0c4a6e] font-semibold">
               {node.parentId || 'Primary Feeder Header'}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-slate-500">GPS Coordinates</span>
+            <span className="text-slate-600">GPS Coordinates</span>
             <span className="font-mono text-slate-700">
               {node.lat.toFixed(4)}, {node.lng.toFixed(4)}
             </span>
@@ -272,11 +272,11 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
             type="button"
             onClick={handleMaintenanceClick}
             disabled={isUpdatingStatus}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${
-              node.isMaintenance()
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
-            }`}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-control text-[0.8125rem] font-semibold transition-all cursor-pointer disabled:opacity-50 ${
+ node.isMaintenance()
+ ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+ : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200'
+ }`}
           >
             {isUpdatingStatus ? (
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -289,7 +289,7 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
                 : 'Set to Maintenance Mode'}
             </span>
           </button>
-          <p className="text-[10px] text-slate-400 mt-2 text-center leading-normal">
+          <p className="text-[0.8125rem] text-slate-600 mt-2 text-center leading-normal">
             Switching to Maintenance silences AI alerts while plumbers service pipe fittings.
           </p>
         </div>
@@ -297,7 +297,7 @@ export default function NodeDetailsPanel({ node, onClose, onToggleMaintenance })
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-black/[0.05] text-[10.5px] text-slate-400 text-center font-mono">
+      <div className="pt-4 border-t border-black/[0.05] text-[10.5px] text-slate-600 text-center font-mono">
         Registered: {node.installedAt}
       </div>
     </aside>

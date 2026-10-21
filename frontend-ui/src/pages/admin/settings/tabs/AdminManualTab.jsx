@@ -29,22 +29,22 @@ export default function AdminManualTab() {
       
       {/* Documentation Page Header */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
             <span>Administration</span>
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
             Rules for adding user accounts, registering meters, and downloading reports.
         </p>
       </div>
 
       {/* Sticky Table of Contents Quick Jump Bar */}
-      <div className="sticky top-0 z-20 py-2.5 -my-2.5 bg-[#f4f5f8]/90 backdrop-blur-md flex flex-wrap gap-1.5 select-none">
+      <div className="sticky top-0 z-20 py-2.5 -my-2.5 bg-[#f4f5f8]/90 flex flex-wrap gap-1.5 select-none">
         {SECTIONS.map((s) => (
           <button
             key={s.id}
             type="button"
             onClick={() => scrollTo(s.id)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/90 hover:bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70 shadow-2xs transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-lg text-[0.8125rem] font-medium bg-white hover:bg-white text-slate-600 hover:text-slate-900 border border-slate-200/70 shadow-2xs transition-all cursor-pointer"
           >
             {s.label}
           </button>
@@ -56,23 +56,23 @@ export default function AdminManualTab() {
         {/* ===================================================================
             SECTION 1: USER ROLES & ACCESS CONTROL
             =================================================================== */}
-        <section id="man-users" className="bg-white/80 backdrop-blur-md rounded-2xl p-7 border border-white/80 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] space-y-5 scroll-mt-14">
+        <section id="man-users" className="aq-surface rounded-card p-7 border border-line shadow-soft space-y-5 scroll-mt-14">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-blue-500" />
-              <h3 className="text-sm font-bold text-slate-900">1. Adding Users & Access Roles</h3>
+              <h3 className="text-sm font-semibold text-slate-900">1. Adding Users & Access Roles</h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded text-[0.8125rem] font-semibold bg-blue-50 text-blue-700 border border-blue-200 ">
               Governance
             </span>
           </div>
 
           <div className="space-y-3.5">
             {/* Resident Card */}
-            <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs">
+            <div className="p-4 bg-slate-50 rounded-control space-y-2 text-[0.8125rem]">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 text-xs">👤 Resident (Household Consumer)</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-slate-200 text-slate-600">
+                <span className="font-semibold text-slate-900 text-[0.8125rem]">👤 Resident (Household Consumer)</span>
+                <span className="px-2 py-0.5 rounded text-[0.8125rem] font-semibold bg-white border border-slate-200 text-slate-600">
                   Consumer Access
                 </span>
               </div>
@@ -87,10 +87,10 @@ export default function AdminManualTab() {
             </div>
 
             {/* Field Technician Card */}
-            <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs">
+            <div className="p-4 bg-slate-50 rounded-control space-y-2 text-[0.8125rem]">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 text-xs">🔧 Field Technician (Plumber)</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-slate-200 text-slate-600">
+                <span className="font-semibold text-slate-900 text-[0.8125rem]">🔧 Field Technician (Plumber)</span>
+                <span className="px-2 py-0.5 rounded text-[0.8125rem] font-semibold bg-white border border-slate-200 text-slate-600">
                   Maintenance Access
                 </span>
               </div>
@@ -101,17 +101,17 @@ export default function AdminManualTab() {
             </div>
 
             {/* Admin Card */}
-            <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs">
+            <div className="p-4 bg-slate-50 rounded-control space-y-2 text-[0.8125rem]">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900 text-xs">🛡️ System Administrator</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-slate-200 text-slate-600">
+                <span className="font-semibold text-slate-900 text-[0.8125rem]">🛡️ System Administrator</span>
+                <span className="px-2 py-0.5 rounded text-[0.8125rem] font-semibold bg-white border border-slate-200 text-slate-600">
                   Full Authority
                 </span>
               </div>
               <p className="text-slate-600 leading-relaxed">Full system governance, node provisioning, and reporting exports.</p>
               <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-lg text-amber-900">
                 <p className="font-semibold">⚠️ Safety Guardrail (Last-Admin Protection):</p>
-                <p className="text-[11px] mt-0.5">The software will reject deleting or demoting the last remaining administrator account to prevent accidental utility lockouts.</p>
+                <p className="text-[0.8125rem] mt-0.5">The software will reject deleting or demoting the last remaining administrator account to prevent accidental utility lockouts.</p>
               </div>
             </div>
           </div>
@@ -120,20 +120,20 @@ export default function AdminManualTab() {
         {/* ===================================================================
             SECTION 2: REGISTERING NEW METERS
             =================================================================== */}
-        <section id="man-meters" className="bg-white/80 backdrop-blur-md rounded-2xl p-7 border border-white/80 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] space-y-5 scroll-mt-14">
+        <section id="man-meters" className="aq-surface rounded-card p-7 border border-line shadow-soft space-y-5 scroll-mt-14">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <h3 className="text-sm font-bold text-slate-900">2. Registering New Water Meters (Nodes)</h3>
+              <h3 className="text-sm font-semibold text-slate-900">2. Registering New Water Meters (Nodes)</h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded text-[0.8125rem] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 ">
               Infrastructure
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-            <div className="p-4 bg-slate-50 rounded-xl space-y-2">
-              <h4 className="font-bold text-slate-900 text-xs">Required Details:</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-[0.8125rem]">
+            <div className="p-4 bg-slate-50 rounded-control space-y-2">
+              <h4 className="font-semibold text-slate-900 text-[0.8125rem]">Required Details:</h4>
               <ul className="space-y-1 text-slate-600">
                 <li>• <strong>Household Label:</strong> e.g., "Santos Family" or "Purok 2 Tap".</li>
                 <li>• <strong>Purok Sector:</strong> e.g., "Purok 2" (used to calculate fairness).</li>
@@ -141,8 +141,8 @@ export default function AdminManualTab() {
               </ul>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-xl space-y-2">
-              <h4 className="font-bold text-slate-900 text-xs">Optional Parameters:</h4>
+            <div className="p-4 bg-slate-50 rounded-control space-y-2">
+              <h4 className="font-semibold text-slate-900 text-[0.8125rem]">Optional Parameters:</h4>
               <ul className="space-y-1 text-slate-600">
                 <li>• <strong>GPS Coordinates:</strong> Places a pin on the map.</li>
                 <li>• <strong>Physical vs. Simulated:</strong> Check physical if using an actual ESP32 sensor.</li>
@@ -154,18 +154,18 @@ export default function AdminManualTab() {
         {/* ===================================================================
             SECTION 3: WALK-IN COMPLAINTS
             =================================================================== */}
-        <section id="man-walkin" className="bg-white/80 backdrop-blur-md rounded-2xl p-7 border border-white/80 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] space-y-5 scroll-mt-14">
+        <section id="man-walkin" className="aq-surface rounded-card p-7 border border-line shadow-soft space-y-5 scroll-mt-14">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-amber-500" />
-              <h3 className="text-sm font-bold text-slate-900">3. Logging Walk-In Resident Complaints</h3>
+              <h3 className="text-sm font-semibold text-slate-900">3. Logging Walk-In Resident Complaints</h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded text-[0.8125rem] font-semibold bg-amber-50 text-amber-700 border border-amber-200 ">
               Citizen Intake
             </span>
           </div>
 
-          <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs text-slate-700">
+          <div className="p-4 bg-slate-50 rounded-control space-y-2 text-[0.8125rem] text-slate-700">
             <p className="text-slate-600">When an elder or resident reports a leak at the Barangay Hall:</p>
             <div className="space-y-1 pt-1">
               <p><strong>Step 1:</strong> Open <em>Incidents</em> and click <strong>"+ Manual Report"</strong>.</p>
@@ -180,25 +180,25 @@ export default function AdminManualTab() {
         {/* ===================================================================
             SECTION 4: EXPORTING COUNCIL REPORTS
             =================================================================== */}
-        <section id="man-reports" className="bg-white/80 backdrop-blur-md rounded-2xl p-7 border border-white/80 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] space-y-5 scroll-mt-14">
+        <section id="man-reports" className="aq-surface rounded-card p-7 border border-line shadow-soft space-y-5 scroll-mt-14">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div className="flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-slate-700" />
-              <h3 className="text-sm font-bold text-slate-900">4. Exporting Reports for Council Meetings</h3>
+              <h3 className="text-sm font-semibold text-slate-900">4. Exporting Reports for Council Meetings</h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">
+            <span className="px-2.5 py-0.5 rounded text-[0.8125rem] font-semibold bg-slate-100 text-slate-700 border border-slate-200 ">
               Auditing & CSV
             </span>
           </div>
 
-          <div className="space-y-3 text-xs text-slate-600">
+          <div className="space-y-3 text-[0.8125rem] text-slate-600">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="p-3.5 bg-slate-50 rounded-xl space-y-1">
+              <div className="p-3.5 bg-slate-50 rounded-control space-y-1">
                 <strong className="text-slate-900 block font-semibold">1. Consumption & Equity Report:</strong>
                 <p>Shows every family's Liters and Cubic Meters ($m^3$) consumed, and flags supply deficits.</p>
               </div>
 
-              <div className="p-3.5 bg-slate-50 rounded-xl space-y-1">
+              <div className="p-3.5 bg-slate-50 rounded-control space-y-1">
                 <strong className="text-slate-900 block font-semibold">2. Leak Loss Report:</strong>
                 <p>Calculates total water lost to pipe leaks and average plumber repair response times.</p>
               </div>

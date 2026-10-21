@@ -1,51 +1,39 @@
 // frontend-ui/src/pages/admin/dashboard/components/PriorityIncidentWidget.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowRight } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 export default function PriorityIncidentWidget({ incidents = [] }) {
-  const openIncidents = incidents.filter((i) => i.status === 'OPEN').slice(0, 3);
+  const openIncidents = incidents.filter((i) => i.status === 'OPEN').slice(0, 4);
 
-  const getSeverityDot = (severity) => {
-    if (severity === 'P1') return 'text-rose-600';
-    if (severity === 'P2') return 'text-amber-600';
-    return 'text-slate-600';
-  };
+  const severityColor = (severity) =>
+    severity === 'P1' ? '#b42318' : severity === 'P2' ? '#b45309' : '#4a5b67';
 
   return (
-    <div className="border border-slate-200 rounded-md bg-white p-5 space-y-4">
-      <div className="flex items-baseline justify-between border-b border-slate-200 pb-3">
-        <h2 className="text-base font-semibold text-slate-900">
+    <section className="aq-card">
+      <div className="aq-card-head">
+        <h2 className="aq-card-title">
+          <span className="aq-icon"><AlertTriangle className="w-[18px] h-[18px] stroke-[1.75]" /></span>
           Priority incidents
         </h2>
-        <Link
-          to="/incidents"
-          className="text-sm font-semibold text-[#0c4a6e] hover:underline"
-        >
-          View all
-        </Link>
+        <Link to="/incidents" className="aq-chip focus-visible:ring-2 focus-visible:ring-[#0c4a6e]">View all</Link>
       </div>
 
       {openIncidents.length > 0 ? (
-        <div className="divide-y divide-slate-200">
+        <ul className="space-y-3">
           {openIncidents.map((inc) => {
             const severity = inc.severity_level || 'P1';
-            const dotColor = getSeverityDot(severity);
             const typeLabel = (inc.incident_type || 'Leak detected').replace('_', ' ');
-
             return (
-              <div
-                key={inc.incident_id || inc.id}
-                className="py-3 flex items-start justify-between gap-4 first:pt-0 last:pb-0"
-              >
-                <div className="space-y-0.5 min-w-0">
+              <li key={inc.incident_id || inc.id} className="aq-tile flex items-start justify-between gap-4">
+                <div className="min-w-0 space-y-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-900 truncate">
-                      {inc.household_label || inc.node_id || 'Household Branch'}
+                      {inc.household_label || inc.node_id || 'Household branch'}
                     </span>
-                    <span className="text-sm text-slate-700 flex items-center gap-1 shrink-0">
-                      <span className={dotColor} aria-hidden="true">●</span>
-                      <span>{severity}</span>
+                    <span className="text-sm text-slate-700 flex items-center gap-1.5 shrink-0">
+                      <span className="aq-dot" style={{ background: severityColor(severity) }} />
+                      {severity}
                     </span>
                   </div>
                   <div className="text-sm text-slate-600">
@@ -54,29 +42,21 @@ export default function PriorityIncidentWidget({ incidents = [] }) {
                     <span className="capitalize">{typeLabel}</span>
                   </div>
                 </div>
-
                 <div className="text-right shrink-0 space-y-0.5">
-                  <div className="text-sm text-slate-600">
-                    {inc.created_at || 'Just now'}
-                  </div>
-                  <div>
-                    <Link
-                      to="/incidents"
-                      className="text-sm font-semibold text-[#0c4a6e] hover:underline"
-                    >
-                      Dispatch
-                    </Link>
-                  </div>
+                  <div className="text-sm text-slate-600">{inc.created_at || 'Just now'}</div>
+                  <Link to="/incidents" className="text-sm font-semibold text-[#0c4a6e] hover:underline">
+                    Dispatch
+                  </Link>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       ) : (
-        <div className="py-6 text-center text-sm text-slate-600">
-          Zero open incidents. All work orders dispatched or closed.
+        <div className="aq-tile text-sm text-slate-600 text-center py-6">
+          No open incidents. All work orders are dispatched or closed.
         </div>
       )}
-    </div>
+    </section>
   );
 }

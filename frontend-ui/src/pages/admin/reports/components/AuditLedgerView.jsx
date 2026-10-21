@@ -29,31 +29,31 @@ export default function AuditLedgerView({ logs = [] }) {
     <div className="space-y-6 animate-in fade-in duration-150">
       
       {/* INV-06 Legal Immutability Notice */}
-      <div className="bg-white/85 backdrop-blur-md rounded-2xl p-5 border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="aq-surface rounded-card p-5 border border-line shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-control bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900">
+              <h3 className="text-sm font-semibold text-slate-900">
                 Immutable Legal Audit Ledger (Table 3.12)
               </h3>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-white">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[0.8125rem] font-mono font-semibold bg-slate-900 text-white">
                 <Lock className="w-2.5 h-2.5" /> INV-06 Protected
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+            <p className="text-[0.8125rem] text-slate-600 mt-0.5 leading-relaxed">
               Protected by MySQL <code className="font-mono text-slate-700">BEFORE UPDATE</code> and <code className="font-mono text-slate-700">BEFORE DELETE</code> triggers (<code className="font-mono text-slate-700">SQLSTATE 45000</code>). Records cannot be altered or erased.
             </p>
           </div>
         </div>
 
         <div className="text-right shrink-0">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+          <span className="text-[0.8125rem] font-semibold text-slate-600 block">
             Logged Entries
           </span>
-          <span className="text-2xl font-black font-mono text-slate-900">
+          <span className="text-2xl font-semibold font-mono text-slate-900">
             {filteredLogs.length}
           </span>
         </div>
@@ -62,20 +62,20 @@ export default function AuditLedgerView({ logs = [] }) {
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-2.5 h-3.5 w-3.5 text-slate-600 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search actor, action, ticket UUID, or remarks..."
-            className="w-full bg-white/90 border border-slate-200 focus:border-slate-900 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-900 outline-none shadow-2xs"
+            className="w-full bg-white border border-slate-200 focus:border-slate-900 rounded-control pl-9 pr-4 py-2 text-[0.8125rem] text-slate-900 outline-none shadow-2xs"
           />
         </div>
 
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="bg-white/90 border border-slate-200 focus:border-slate-900 rounded-xl px-3.5 py-2 text-xs font-mono text-slate-800 outline-none cursor-pointer shadow-2xs"
+          className="bg-white border border-slate-200 focus:border-slate-900 rounded-control px-3.5 py-2 text-[0.8125rem] font-mono text-slate-800 outline-none cursor-pointer shadow-2xs"
         >
           {uniqueActions.map((act) => (
             <option key={act} value={act}>
@@ -86,11 +86,11 @@ export default function AuditLedgerView({ logs = [] }) {
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+      <div className="aq-surface rounded-card border border-line shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-black/[0.05] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-black/[0.05] text-[0.8125rem] font-semibold text-slate-600 ">
                 <th className="py-3 px-4 pl-6">Log ID</th>
                 <th className="py-3 px-4">Timestamp</th>
                 <th className="py-3 px-4">Actor &amp; Role</th>
@@ -99,10 +99,10 @@ export default function AuditLedgerView({ logs = [] }) {
                 <th className="py-3 px-4 pr-6 text-right">Client IP</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/[0.03] text-xs">
+            <tbody className="divide-y divide-black/[0.03] text-[0.8125rem]">
               {filteredLogs.map((log) => (
                 <tr key={log.log_id} className="hover:bg-black/[0.02] transition-colors">
-                  <td className="py-3.5 px-4 pl-6 font-mono font-bold text-slate-500">
+                  <td className="py-3.5 px-4 pl-6 font-mono font-semibold text-slate-600">
                     #{log.log_id}
                   </td>
                   <td className="py-3.5 px-4 font-mono text-slate-600 whitespace-nowrap">
@@ -112,12 +112,12 @@ export default function AuditLedgerView({ logs = [] }) {
                     <span className="font-semibold text-slate-900 block">
                       {log.performed_by_name || `User #${log.performed_by}`}
                     </span>
-                    <span className="text-[10px] font-mono uppercase text-slate-400">
+                    <span className="text-[0.8125rem] font-mono text-slate-600">
                       {log.performed_by_role || 'system'}
                     </span>
                   </td>
                   <td className="py-3.5 px-4">
-                    <span className="px-2 py-0.5 rounded font-mono text-[10.5px] font-bold bg-slate-100 text-slate-800 border border-slate-200">
+                    <span className="px-2 py-0.5 rounded font-mono text-[10.5px] font-semibold bg-slate-100 text-slate-800 border border-slate-200">
                       {log.action_taken}
                     </span>
                   </td>
@@ -126,19 +126,19 @@ export default function AuditLedgerView({ logs = [] }) {
                       {log.remarks || '—'}
                     </span>
                     {log.incident_id && (
-                      <span className="text-[10px] font-mono text-[#0284c7] block mt-0.5">
+                      <span className="text-[0.8125rem] font-mono text-[#0369a1] block mt-0.5">
                         Ticket: {log.incident_id}
                       </span>
                     )}
                   </td>
-                  <td className="py-3.5 px-4 pr-6 text-right font-mono text-slate-400">
+                  <td className="py-3.5 px-4 pr-6 text-right font-mono text-slate-600">
                     {log.client_ip}
                   </td>
                 </tr>
               ))}
               {filteredLogs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-10 text-center text-xs text-slate-400">
+                  <td colSpan={6} className="py-10 text-center text-[0.8125rem] text-slate-600">
                     No audit records match your filter.
                   </td>
                 </tr>

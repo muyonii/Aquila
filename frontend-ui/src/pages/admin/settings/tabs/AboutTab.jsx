@@ -60,87 +60,87 @@ export default function AboutTab() {
     <div className="space-y-5 animate-in fade-in duration-150">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-[#1d1d1f] tracking-tight">
+          <h2 className="text-xl font-semibold text-slate-900 tracking-tight">
             System Status &amp; Credits
           </h2>
-          <p className="text-xs text-[#86868b]">
+          <p className="text-[0.8125rem] text-slate-600">
             Live architectural health and research provenance.
           </p>
         </div>
         <button
           type="button"
           onClick={checkHealth}
-          className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer shadow-2xs"
+          className="px-3 py-1.5 rounded-control bg-white border border-slate-200 text-[0.8125rem] font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer shadow-2xs"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin': ''}`} />
           <span>Run Health Check</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-xl p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
-        <h3 className="text-xs font-bold text-[#1d1d1f]">
+      <div className="bg-white rounded-control p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+        <h3 className="text-[0.8125rem] font-semibold text-slate-900">
           Live Architecture Diagnostics
         </h3>
 
-        <div className="space-y-2 text-xs">
+        <div className="space-y-2 text-[0.8125rem]">
           {/* 1. Firebase Cloud Hot Store */}
-          <div className="flex items-center justify-between p-2.5 bg-[#f5f5f7] rounded-lg">
+          <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg">
             <span>Firebase Cloud Hot Store (Singapore)</span>
             <span
               className={`font-semibold font-mono ${
-                isConnected ? 'text-emerald-700' : 'text-rose-600'
-              }`}
+ isConnected ? 'text-emerald-700': 'text-rose-600'
+ }`}
             >
               ● {isConnected ? 'Connected (WebSocket Live)' : 'Disconnected'}
             </span>
           </div>
 
           {/* 2. MySQL 8.0 Relational Core */}
-          <div className="flex items-center justify-between p-2.5 bg-[#f5f5f7] rounded-lg">
+          <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg">
             <span>MySQL 8.0 Relational Core (+08:00 PST)</span>
             <span
               className={`font-semibold font-mono ${
-                loading
-                  ? 'text-slate-400'
-                  : dbReachable
-                  ? 'text-emerald-700'
-                  : 'text-rose-600'
-              }`}
+ loading
+ ? 'text-slate-600'
+ : dbReachable
+ ? 'text-emerald-700'
+ : 'text-rose-600'
+ }`}
             >
               ● {loading ? 'Checking...' : dbReachable ? 'Connected (Healthy)' : 'Unreachable'}
             </span>
           </div>
 
           {/* 3. Physical Testbed Node 01 (45s Stale Cutoff) */}
-          <div className="flex items-center justify-between p-2.5 bg-[#f5f5f7] rounded-lg">
+          <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg">
             <span>Physical Testbed Node 01 (15.0s Pulse)</span>
             <span
               className={`font-semibold font-mono ${
-                isNode01Streaming ? 'text-emerald-700' : 'text-slate-500'
-              }`}
+ isNode01Streaming ? 'text-emerald-700': 'text-slate-600'
+ }`}
             >
               ● {isNode01Streaming ? `Streaming (${node01Age}s ago)` : 'Offline (No Pulse >45s)'}
             </span>
           </div>
 
           {/* 4. MAS Multi-Agent Watchdog (30s Cutoff) */}
-          <div className="flex items-center justify-between p-2.5 bg-[#f5f5f7] rounded-lg">
+          <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-lg">
             <span>MAS Multi-Agent Engine (30.0s Watchdog)</span>
             <span
               className={`font-semibold font-mono ${
-                masHealth.isHealthy
-                  ? 'text-emerald-700'
-                  : masHealth.healthyCount > 0
-                  ? 'text-amber-600'
-                  : 'text-rose-600'
-              }`}
+ masHealth.isHealthy
+ ? 'text-emerald-700'
+ : masHealth.healthyCount > 0
+ ? 'text-amber-600'
+ : 'text-rose-600'
+ }`}
             >
               ● {masHealth.overallStatus} ({masHealth.healthyCount}/{masHealth.totalCount} Agents Active)
             </span>
           </div>
         </div>
 
-        <div className="pt-2 text-xs text-[#86868b] space-y-1">
+        <div className="pt-2 text-[0.8125rem] text-slate-600 space-y-1">
           <p>
             <strong>Platform:</strong> {health?.system_name || 'AQUILA Decision Support System'} v{health?.version || '2.3.0'}
           </p>

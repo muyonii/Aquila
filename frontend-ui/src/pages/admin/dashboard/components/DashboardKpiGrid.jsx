@@ -1,7 +1,26 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Droplets, AlertTriangle, Users, Activity, ChevronRight } from 'lucide-react';
+import { Activity, Droplets, ClipboardList, Users, ChevronRight } from 'lucide-react';
 import { useSettings } from '../../settings/core/SettingsManager';
+
+function KpiCard({ to, icon: Icon, label, children, sub, footer }) {
+  return (
+    <div className="aq-card flex flex-col">
+      <div className="flex items-center gap-3">
+        <span className="aq-icon"><Icon className="w-[18px] h-[18px] stroke-[1.75]" /></span>
+        <span className="aq-label">{label}</span>
+      </div>
+      <div className="mt-4 flex-1">
+        <div className="text-[2rem] leading-tight font-semibold text-slate-900 tabular-nums">{children}</div>
+        <p className="text-sm text-slate-600 mt-1">{sub}</p>
+      </div>
+      <Link to={to} className="aq-foot focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]">
+        <span>{footer}</span>
+        <ChevronRight className="w-4 h-4 stroke-[1.75]" />
+      </Link>
+    </div>
+  );
+}
 
 export function DashboardKpiGrid({ summary, kpis }) {
   const prefs = useSettings();
@@ -10,61 +29,57 @@ export function DashboardKpiGrid({ summary, kpis }) {
   const primaryVolumeDisplay =
     prefs.volumeUnit === 'liters' ? `${totalLiters.toFixed(1)} L` : `${totalM3} m³`;
   const secondaryVolumeDisplay =
-    prefs.volumeUnit === 'liters'
-      ? `${totalM3} m³ cubic volume`
-      : `${totalLiters.toFixed(1)} Liters total draw`;
+    prefs.volumeUnit === 'liters' ? `${totalM3} m³ total draw` : `${totalLiters.toFixed(1)} L total draw`;
+
+  const hasLeaks = kpis.activeLeaks > 0;
 
   return (
-    <div className="border border-slate-200 rounded-md bg-white grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-200">
-      
-      {/* 1. Active water leaks */}
-      <Link
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <KpiCard
         to="/incidents"
-        className="p-5 flex flex-col justify-between hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+        icon={Activity}
+        label="Network status"
+        sub={
+          hasLeaks
+            ? `${kpis.activeLeaks} active ${kpis.activeLeaks === 1 ? 'leak' : 'leaks'} across ${summary.totalNodes} nodes`
+            : `No active leaks across ${summary.totalNodes} nodes`
+        }
+        footer="View incidents"
       >
-        <span className="text-sm text-slate-600">Active water leaks</span>
-        <div className="text-[32px] leading-tight font-semibold text-slate-900 tabular-nums my-1">
-          {kpis.activeLeaks}
-        </div>
-        <p className="text-sm text-slate-600">Conduits currently breaching</p>
-      </Link>
+        <span className={hasLeaks ? 'text-rose-700' : 'text-emerald-700'}>
+          {hasLeaks ? 'Attention' : 'Good'}
+        </span>
+      </KpiCard>
 
-      {/* 2. Pending work orders */}
-      <Link
-        to="/incidents"
-        className="p-5 flex flex-col justify-between hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
-      >
-        <span className="text-sm text-slate-600">Pending work orders</span>
-        <div className="text-[32px] leading-tight font-semibold text-slate-900 tabular-nums my-1">
-          {kpis.pendingTickets}
-        </div>
-        <p className="text-sm text-slate-600">Requires dispatcher attention</p>
-      </Link>
-
-      {/* 3. On-duty plumbers */}
-      <Link
-        to="/users"
-        className="p-5 flex flex-col justify-between hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
-      >
-        <span className="text-sm text-slate-600">On-duty plumbers</span>
-        <div className="text-[32px] leading-tight font-semibold text-slate-900 tabular-nums my-1">
-          {kpis.onDutyTechs}
-        </div>
-        <p className="text-sm text-slate-600">Ready for field dispatch</p>
-      </Link>
-
-      {/* 4. 24h community usage */}
-      <Link
+      <KpiCard
         to="/reports"
-        className="p-5 flex flex-col justify-between hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+        icon={Droplets}
+        label="24h community usage"
+        sub={secondaryVolumeDisplay}
+        footer="View usage report"
       >
-        <span className="text-sm text-slate-600">24h community usage</span>
-        <div className="text-[32px] leading-tight font-semibold text-slate-900 tabular-nums my-1">
-          {primaryVolumeDisplay}
-        </div>
-        <p className="text-sm text-slate-600">{secondaryVolumeDisplay}</p>
-      </Link>
+        {primaryVolumeDisplay}
+      </KpiCard>
 
+      <KpiCard
+        to="/incidents"
+        icon={ClipboardList}
+        label="Pending work orders"
+        sub="Waiting for dispatch"
+        footer="Open work orders"
+      >
+        {kpis.pendingTickets}
+      </KpiCard>
+
+      <KpiCard
+        to="/users"
+        icon={Users}
+        label="On-duty plumbers"
+        sub="Ready for field dispatch"
+        footer="View team"
+      >
+        {kpis.onDutyTechs}
+      </KpiCard>
     </div>
   );
 }

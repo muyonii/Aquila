@@ -20,10 +20,10 @@ export default function SvgNeedleGauge({
 
   // Dynamic zone styling
   const getZoneColor = (v) => {
-    if (v <= 0.05) return 'text-slate-600';     // Quiescent / Still
-    if (v <= 4.5) return 'text-emerald-700';    // Normal consumption
-    if (v <= 7.0) return 'text-amber-800';      // High domestic draw
-    return 'text-rose-700';                     // Sustained pipe rupture
+    if (v <= 0.05) return 'text-ink-muted';     // Quiescent / Still
+    if (v <= 4.5) return 'text-state-ok';       // Normal consumption
+    if (v <= 7.0) return 'text-state-warn';     // High domestic draw
+    return 'text-state-danger';                 // Sustained pipe rupture
   };
 
   return (
@@ -36,10 +36,10 @@ export default function SvgNeedleGauge({
           <defs>
             {/* Color Arc Gradients */}
             <linearGradient id="gaugeArcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#64748b" />   {/* 0 LPM Quiescent */}
-              <stop offset="20%" stopColor="#059669" />  {/* Normal Flow */}
-              <stop offset="65%" stopColor="#d97706" />  {/* High Draw */}
-              <stop offset="100%" stopColor="#dc2626" /> {/* Rupture Floor */}
+              <stop offset="0%" stopColor="#4a5b67" />   {/* 0 LPM Quiescent */}
+              <stop offset="20%" stopColor="#0f766e" />  {/* Normal Flow */}
+              <stop offset="65%" stopColor="#b45309" />  {/* High Draw */}
+              <stop offset="100%" stopColor="#b42318" /> {/* Rupture Floor */}
             </linearGradient>
           </defs>
 
@@ -47,7 +47,7 @@ export default function SvgNeedleGauge({
           <path
             d="M 20 100 A 80 80 0 0 1 180 100"
             fill="none"
-            stroke="#cbd5e1"
+            stroke="#dde6ec"
             strokeWidth="14"
             strokeLinecap="round"
           />
@@ -65,11 +65,11 @@ export default function SvgNeedleGauge({
           />
 
           {/* Ticks (0, 2.5, 5.0, 7.5, 10.0) */}
-          <text x="18" y="115" fontSize="9" fill="#475569" textAnchor="middle" fontWeight="bold">0</text>
-          <text x="56" y="44" fontSize="9" fill="#475569" textAnchor="middle" fontWeight="bold">2.5</text>
-          <text x="100" y="24" fontSize="9" fill="#475569" textAnchor="middle" fontWeight="bold">5.0</text>
-          <text x="144" y="44" fontSize="9" fill="#475569" textAnchor="middle" fontWeight="bold">7.5</text>
-          <text x="182" y="115" fontSize="9" fill="#475569" textAnchor="middle" fontWeight="bold">{max}</text>
+          <text x="18" y="115" fontSize="12" fill="#4a5b67" textAnchor="middle" fontWeight="500">0</text>
+          <text x="56" y="44" fontSize="12" fill="#4a5b67" textAnchor="middle" fontWeight="500">2.5</text>
+          <text x="100" y="24" fontSize="12" fill="#4a5b67" textAnchor="middle" fontWeight="500">5.0</text>
+          <text x="144" y="44" fontSize="12" fill="#4a5b67" textAnchor="middle" fontWeight="500">7.5</text>
+          <text x="182" y="115" fontSize="12" fill="#4a5b67" textAnchor="middle" fontWeight="500">{max}</text>
 
           {/* Rotating Needle */}
           <g 
@@ -78,9 +78,9 @@ export default function SvgNeedleGauge({
           >
             <polygon 
               points="97,100 103,100 100.8,26 99.2,26" 
-              fill="#0f172a" 
+              fill="#0f1f2b" 
             />
-            <circle cx="100" cy="100" r="7" fill="#0f172a" />
+            <circle cx="100" cy="100" r="7" fill="#0f1f2b" />
             <circle cx="100" cy="100" r="3" fill="#ffffff" />
           </g>
         </svg>
@@ -88,11 +88,11 @@ export default function SvgNeedleGauge({
 
       {/* Numeric Readout */}
       <div className="text-center -mt-2">
-        <span className={`text-2xl font-semibold tracking-tight font-mono ${getZoneColor(value)}`}>
+        <span className={`text-[32px] leading-tight font-semibold tracking-tight font-mono tabular-nums ${getZoneColor(value)}`}>
           {Number(value).toFixed(2)}
         </span>
-        <span className="text-sm text-slate-600 ml-1">LPM</span>
-        <p className="text-xs text-slate-600 mt-0.5">{label}</p>
+        <span className="text-sm font-semibold text-ink-muted ml-1">LPM</span>
+        <p className="text-xs text-ink-muted mt-0.5">{label}</p>
       </div>
     </div>
   );

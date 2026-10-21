@@ -18,13 +18,13 @@ export default function StatusBadge({ status = 'OPEN', className = '' }) {
     PENDING_VERIFICATION: 'text-amber-600',
     CLOSED_VERIFIED: 'text-emerald-600',
     REPAIR_FAILED: 'text-rose-600',
-    CANCELLED: 'text-slate-500',
+    CANCELLED: 'text-slate-600',
     // Node States
     ACTIVE: 'text-emerald-600',
     MAINTENANCE: 'text-amber-600',
-    INACTIVE: 'text-slate-500',
-    OFFLINE: 'text-slate-500',
-  }[normalized] || 'text-slate-500';
+    INACTIVE: 'text-slate-600',
+    OFFLINE: 'text-slate-600',
+  }[normalized] || 'text-slate-600';
 
   const label = normalized.replace(/_/g, ' ');
 

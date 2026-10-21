@@ -3,25 +3,22 @@ import { AlertCircle, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 
 /* =========================================================================
    Shared UI primitives for the Resident + Technician portals.
-   Pattern: admin dashboard — flat, no shadow, rounded-md, divide-y lists.
+   Pattern: Soft water blue system with cards, tiles, and WCAG AA contrast.
    ========================================================================= */
 
-export const cardClass =
-  'bg-white rounded-md border border-slate-200';
+export const cardClass = 'card';
 
-export const inputClass =
-  'w-full bg-white border border-slate-300 focus:border-[#0c4a6e] focus:ring-2 focus:ring-[#0c4a6e]/20 text-slate-900 px-3 py-2.5 h-11 rounded-md text-base outline-none transition placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-[#0c4a6e]';
+export const inputClass = 'input w-full';
 
-const btnBase =
-  'inline-flex items-center justify-center gap-2 h-10 px-4 rounded-md text-sm font-semibold transition disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 tracking-wide';
-export const btnPrimary = `${btnBase} bg-[#0c4a6e] hover:bg-[#075985] text-white focus-visible:ring-[#0c4a6e]`;
-export const btnSecondary = `${btnBase} bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 focus-visible:ring-[#0c4a6e]`;
-export const btnDanger = `${btnBase} bg-rose-700 hover:bg-rose-800 text-white focus-visible:ring-rose-700`;
-export const btnAccent = `${btnBase} bg-[#0c4a6e] hover:bg-[#075985] text-white focus-visible:ring-[#0c4a6e]`;
+export const btnPrimary = 'btn-primary';
+export const btnSecondary = 'btn-secondary';
+export const btnDanger =
+  'inline-flex items-center justify-center gap-2 h-11 px-4 rounded-control text-sm font-semibold transition bg-state-danger hover:opacity-95 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-state-danger shadow-soft cursor-pointer disabled:opacity-50 disabled:pointer-events-none';
+export const btnAccent = 'btn-primary';
 
 export function Card({ className = '', children, ...rest }) {
   return (
-    <div className={`${cardClass} ${className}`} {...rest}>
+    <div className={`card ${className}`} {...rest}>
       {children}
     </div>
   );
@@ -30,41 +27,46 @@ export function Card({ className = '', children, ...rest }) {
 /** @deprecated — replaced by bare icon. Stub kept for build compatibility until Batch 5-6. */
 export function IconTile({ icon: Icon, className = '' }) {
   if (!Icon) return null;
-  return <Icon className={`w-4 h-4 text-slate-500 ${className}`} />;
+  return (
+    <span className="icon-chip">
+      <Icon className={`w-[18px] h-[18px] stroke-[1.75] text-ink ${className}`} />
+    </span>
+  );
 }
 
-/** Plain section label — 13px semibold slate-700, uppercase tracked */
+/** Plain section label — 12px semibold ink-muted, uppercase tracked */
 export function Eyebrow({ children, className = '' }) {
   return (
-    <div className={`text-xs font-semibold text-slate-600 uppercase tracking-widest ${className}`}>
+    <div className={`text-xs font-semibold text-ink-muted uppercase tracking-wider ${className}`}>
       {children}
     </div>
   );
 }
 
-/** Form field label — 13px semibold slate-800 (higher contrast) */
+/** Form field label — 14px semibold ink */
 export function Label({ children, className = '' }) {
   return (
-    <span className={`text-[13px] font-semibold text-slate-800 block ${className}`}>
+    <span className={`text-sm font-semibold text-ink block ${className}`}>
       {children}
     </span>
   );
 }
 
 const TONES = {
-  sky:     { alert: 'bg-sky-50 text-sky-950 border-sky-300',     icon: AlertCircle },
-  amber:   { alert: 'bg-amber-50 text-amber-950 border-amber-300', icon: AlertTriangle },
-  emerald: { alert: 'bg-emerald-50 text-emerald-900 border-emerald-300', icon: CheckCircle2 },
-  rose:    { alert: 'bg-rose-50 text-rose-900 border-rose-300',   icon: AlertCircle },
-  indigo:  { alert: 'bg-slate-50 text-slate-900 border-slate-300', icon: Info },
-  slate:   { alert: 'bg-slate-50 text-slate-900 border-slate-300', icon: Info },
+  sky:     { alert: 'bg-[#f0f9ff] text-brand border-line', icon: Info },
+  amber:   { alert: 'bg-state-warn-tint text-state-warn border-[#fde68a]', icon: AlertTriangle },
+  emerald: { alert: 'bg-state-ok-tint text-state-ok border-[#a7f3d0]', icon: CheckCircle2 },
+  rose:    { alert: 'bg-state-danger-tint text-state-danger border-[#fecaca]', icon: AlertCircle },
+  indigo:  { alert: 'bg-canvas text-ink border-line', icon: Info },
+  slate:   { alert: 'bg-canvas text-ink border-line', icon: Info },
 };
 
 export function Alert({ tone = 'rose', icon, children, action, className = '' }) {
-  const Icon = icon || TONES[tone].icon;
+  const Icon = icon || TONES[tone]?.icon || Info;
+  const alertStyles = TONES[tone]?.alert || TONES.slate.alert;
   return (
-    <div role="alert" className={`p-3.5 rounded-md border text-sm flex items-start gap-2.5 ${TONES[tone].alert} ${className}`}>
-      <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+    <div role="alert" className={`p-3.5 rounded-tile border text-sm flex items-start gap-2.5 ${alertStyles} ${className}`}>
+      <Icon className="w-[18px] h-[18px] mt-0.5 shrink-0 stroke-[1.75]" />
       <div className="flex-1 min-w-0">{children}</div>
       {action}
     </div>
@@ -75,8 +77,8 @@ export function PageHeader({ title, subtitle, right }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="space-y-1 min-w-0">
-        <h1 className="text-[1.5rem] font-bold text-slate-900 tracking-tight leading-tight">{title}</h1>
-        {subtitle && <p className="text-[0.9375rem] text-slate-600 leading-relaxed">{subtitle}</p>}
+        <h1 className="text-2xl font-semibold text-ink tracking-tight leading-tight">{title}</h1>
+        {subtitle && <p className="text-sm text-ink-muted leading-relaxed">{subtitle}</p>}
       </div>
       {right}
     </div>
@@ -87,24 +89,24 @@ export function PageHeader({ title, subtitle, right }) {
 export function StatTile({ label, value, unit, hint, loading = false }) {
   return (
     <div className="p-5 flex flex-col justify-between">
-      <span className="text-[0.8125rem] font-semibold text-slate-600 uppercase tracking-wide">{label}</span>
-      <div className="text-[2rem] leading-tight font-bold text-slate-900 tabular-nums my-1.5">
+      <span className="text-xs font-semibold text-ink-muted uppercase tracking-wide">{label}</span>
+      <div className="text-[32px] leading-tight font-semibold text-ink tabular-nums my-1.5">
         {loading ? '—' : value}
-        {unit && <span className="text-sm font-semibold text-slate-500 ml-1.5">{unit}</span>}
+        {unit && <span className="text-sm font-medium text-ink-muted ml-1.5">{unit}</span>}
       </div>
-      {hint && <p className="text-[0.875rem] text-slate-500">{hint}</p>}
+      {hint && <p className="text-sm text-ink-muted">{hint}</p>}
     </div>
   );
 }
 
 export function Skeleton({ className = '' }) {
-  return <div className={`animate-pulse bg-slate-200 rounded-md ${className}`} />;
+  return <div className={`bg-line rounded-tile ${className}`} />;
 }
 
 /** Plain one-line empty state with optional link */
 export function EmptyState({ title, action }) {
   return (
-    <div className="py-8 text-[0.9375rem] text-slate-500">
+    <div className="py-6 text-sm text-ink-muted">
       {title}{action && <> · {action}</>}
     </div>
   );
@@ -113,9 +115,9 @@ export function EmptyState({ title, action }) {
 /** Live status — dot + label, no pill */
 export function LivePill({ connected }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
-      <span className={`w-2 h-2 rounded-full shrink-0 ${connected ? 'bg-emerald-600' : 'bg-slate-400'}`} />
-      <span className={connected ? 'text-emerald-700' : 'text-slate-600'}>
+    <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+      <span className={`status-dot ${connected ? 'ok' : 'neutral bg-slate-400'}`} />
+      <span className={connected ? 'text-state-ok font-semibold' : 'text-ink-muted'}>
         {connected ? 'Live' : 'Offline'}
       </span>
     </span>
@@ -125,8 +127,8 @@ export function LivePill({ connected }) {
 export function Brand({ suffix }) {
   return (
     <span className="flex items-center gap-2.5">
-      <span className="w-2.5 h-2.5 rounded-full bg-[#0c4a6e] shrink-0" />
-      <span className="font-semibold text-base text-[#0c4a6e] font-mono">AQUILA</span>
+      <span className="w-2.5 h-2.5 rounded-full bg-brand shrink-0" />
+      <span className="font-semibold text-base text-brand font-mono">AQUILA</span>
       {suffix}
     </span>
   );
@@ -157,3 +159,4 @@ export function timeAgo(ts) {
   const days = Math.floor(hrs / 24);
   return `${days} day${days > 1 ? 's' : ''} ago`;
 }
+

@@ -10,7 +10,8 @@ import {
   Settings,
   LogOut,
   PanelLeft,
-  Activity
+  Activity,
+  Droplets
 } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 
@@ -21,8 +22,16 @@ const NAV_ITEMS = [
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/inspector', label: 'System Inspector', icon: Activity },
-  { to: '/settings', label: 'Settings', icon: Settings },
 ];
+
+const FOOTER_NAV = [{ to: '/settings', label: 'Settings', icon: Settings }];
+
+const navClass = (isExpanded) => ({ isActive }) =>
+  `group flex items-center gap-3 rounded-control px-3 py-2.5 text-[0.9375rem] transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] focus-visible:outline-none ${
+    isActive
+      ? 'bg-white text-ink font-semibold shadow-soft border border-line'
+      : 'border border-transparent text-slate-700 hover:text-ink hover:bg-white/70 font-medium'
+  } ${!isExpanded ? 'justify-center px-0' : ''}`;
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -69,7 +78,7 @@ export default function AdminLayout() {
     : 'BA';
 
   return (
-    <div className="min-h-screen bg-[#f4f5f8] flex font-sans">
+    <div className="min-h-screen bg-canvas flex font-sans">
       
       {/* =====================================================================
           1. STRUCTURAL SPACER (Handles layout reflow vs static spacing)
@@ -81,27 +90,25 @@ export default function AdminLayout() {
           onMouseEnter={() => sidebarMode === 'hover' && setIsHovered(true)}
           onMouseLeave={() => sidebarMode === 'hover' && setIsHovered(false)}
           className={`fixed top-0 left-0 h-screen transition-[width,box-shadow] duration-200 ease-out z-40 flex flex-col justify-between select-none
-            bg-white border-r border-slate-200 text-slate-800
+            bg-[#e9f0f4] border-r border-line text-slate-800
             ${isExpanded ? 'w-64' : 'w-20'}
-            ${isHoverOverlay ? 'shadow-lg' : ''}
+            ${isHoverOverlay ? 'shadow-soft' : ''}
           `}
         >
           {/* Top: Logo & Navigation */}
           <div className="relative z-10">
             {/* Logo Row */}
-            <div className="h-16 px-4 flex items-center border-b border-slate-200">
+            <div className="h-16 px-4 flex items-center">
               <Link
                 to="/dashboard"
-                className={`flex items-center gap-3 transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-[#0c4a6e] rounded-lg p-1 ${
+                className={`flex items-center gap-2.5 transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-[#0c4a6e] rounded-control p-1 ${
                   !isExpanded ? 'mx-auto' : ''
                 }`}
                 title="AQUILA"
               >
-                {/* Clean Solid Dot Logo */}
-                <span className="w-3 h-3 rounded-full bg-[#0c4a6e] shrink-0" />
-
+                <Droplets className="h-5 w-5 text-[#0c4a6e] shrink-0 stroke-[1.75]" />
                 {isExpanded && (
-                  <span className="font-bold text-base text-[#0c4a6e] font-mono tracking-wider">
+                  <span className="font-semibold text-lg text-[#0c4a6e] tracking-tight">
                     AQUILA
                   </span>
                 )}
@@ -109,7 +116,7 @@ export default function AdminLayout() {
             </div>
 
             {/* Navigation Links */}
-            <nav className="py-2 space-y-0.5 overflow-y-auto max-h-[calc(100vh-200px)] [scrollbar-width:none]">
+            <nav className="px-3 py-2 space-y-1 overflow-y-auto max-h-[calc(100vh-260px)] [scrollbar-width:none]">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -117,21 +124,14 @@ export default function AdminLayout() {
                     key={item.to}
                     to={item.to}
                     title={!isExpanded ? item.label : undefined}
-                    className={({ isActive }) =>
-                      `group flex items-center gap-3 px-3.5 py-2.5 text-[0.9375rem] transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] focus-visible:outline-none ${
-                        isActive
-                          ? 'border-l-[3px] border-[#0c4a6e] bg-slate-100 text-slate-900 font-semibold'
-                          : 'border-l-[3px] border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-normal'
-                      } ${!isExpanded ? 'justify-center px-0' : ''}`
-                    }
+                    className={navClass(isExpanded)}
                   >
-                    <Icon className="h-4 w-4 text-slate-500 shrink-0 stroke-[1.75]" />
-                    
+                    <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.75]" />
                     {isExpanded && (
                       <div className="flex items-center justify-between flex-1 truncate">
                         <span className="truncate">{item.label}</span>
                         {item.hasBadge && (
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-600 shrink-0" />
+                          <span className="h-2 w-2 rounded-full bg-amber-600 shrink-0" aria-hidden="true" />
                         )}
                       </div>
                     )}
@@ -142,12 +142,27 @@ export default function AdminLayout() {
           </div>
 
           {/* Bottom: User Profile & View Control (plain row separated by rule) */}
-          <div className="p-3 border-t border-slate-200 relative z-10 shrink-0" ref={popoverRef}>
+          <div className="p-3 relative z-10 shrink-0 space-y-1" ref={popoverRef}>
+            {FOOTER_NAV.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  title={!isExpanded ? item.label : undefined}
+                  className={navClass(isExpanded)}
+                >
+                  <Icon className="h-[18px] w-[18px] shrink-0 stroke-[1.75]" />
+                  {isExpanded && <span className="truncate">{item.label}</span>}
+                </NavLink>
+              );
+            })}
+            <div className="border-t border-line pt-3 mt-2" />
             
             {/* Popover Menu */}
             {popoverOpen && (
-              <div className="absolute bottom-16 left-3 w-48 bg-white border border-slate-200 rounded-md p-1.5 text-sm space-y-0.5 z-50">
-                <div className="px-2.5 py-1 text-xs text-slate-600">
+              <div className="absolute bottom-16 left-3 w-52 bg-white border border-line rounded-tile shadow-soft p-1.5 text-sm space-y-0.5 z-50">
+                <div className="px-2.5 py-1 text-[0.8125rem] text-slate-600">
                   Sidebar view
                 </div>
 
@@ -160,7 +175,7 @@ export default function AdminLayout() {
                     key={opt.id}
                     type="button"
                     onClick={() => selectMode(opt.id)}
-                    className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md text-left text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between px-2.5 py-2 rounded-control text-left text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                   >
                     <span className="text-sm">{opt.label}</span>
                     {sidebarMode === opt.id && (
@@ -175,14 +190,14 @@ export default function AdminLayout() {
             {isExpanded ? (
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 overflow-hidden">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-white border border-line text-ink font-semibold text-[0.8125rem] flex items-center justify-center shrink-0">
                     {userInitials}
                   </div>
                   <div className="overflow-hidden">
                     <div className="text-[0.9375rem] font-semibold text-slate-900 truncate leading-tight">
                       {user?.full_name || 'System Admin'}
                     </div>
-                    <div className="text-xs text-slate-500 truncate mt-0.5">
+                    <div className="text-[0.8125rem] text-slate-600 truncate mt-0.5">
                       {user?.email || 'admin@bawasa.gov.ph'}
                     </div>
                   </div>
@@ -192,26 +207,26 @@ export default function AdminLayout() {
                   <button
                     type="button"
                     onClick={() => setPopoverOpen(!popoverOpen)}
-                    className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+                    className="p-2 rounded-control text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
                     title="Sidebar control"
                   >
-                    <PanelLeft className="h-4 w-4 stroke-[1.75]" />
+                    <PanelLeft className="h-[18px] w-[18px] stroke-[1.75]" />
                   </button>
 
                   <button
                     type="button"
                     onClick={handleLogout}
                     title="Sign Out"
-                    className="p-1.5 rounded-md text-slate-500 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+                    className="p-2 rounded-control text-slate-600 hover:text-rose-700 hover:bg-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
                   >
-                    <LogOut className="h-4 w-4 stroke-[1.75]" />
+                    <LogOut className="h-[18px] w-[18px] stroke-[1.75]" />
                   </button>
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2 py-1">
                 <div
-                  className="w-8 h-8 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center shrink-0"
+                  className="w-9 h-9 rounded-full bg-white border border-line text-ink font-semibold text-[0.8125rem] flex items-center justify-center shrink-0"
                   title={user?.full_name || 'System Admin'}
                 >
                   {userInitials}
@@ -220,19 +235,19 @@ export default function AdminLayout() {
                 <button
                   type="button"
                   onClick={() => setPopoverOpen(!popoverOpen)}
-                  className="p-1.5 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+                  className="p-2 rounded-control text-slate-600 hover:text-slate-900 hover:bg-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
                   title="Sidebar control"
                 >
-                  <PanelLeft className="h-4 w-4 stroke-[1.75]" />
+                  <PanelLeft className="h-[18px] w-[18px] stroke-[1.75]" />
                 </button>
 
                 <button
                   type="button"
                   onClick={handleLogout}
                   title="Sign Out"
-                  className="p-1.5 rounded-md text-slate-500 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+                  className="p-2 rounded-control text-slate-600 hover:text-rose-700 hover:bg-white transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
                 >
-                  <LogOut className="h-4 w-4 stroke-[1.75]" />
+                  <LogOut className="h-[18px] w-[18px] stroke-[1.75]" />
                 </button>
               </div>
             )}
@@ -243,7 +258,7 @@ export default function AdminLayout() {
       {/* =====================================================================
           5. MAIN VIEWPORT CONTENT
           ===================================================================== */}
-      <main className="flex-1 overflow-y-auto min-h-screen">
+      <main className="aq-admin flex-1 overflow-y-auto min-h-screen">
         <Outlet />
       </main>
     </div>

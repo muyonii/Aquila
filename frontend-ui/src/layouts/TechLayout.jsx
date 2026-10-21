@@ -96,37 +96,37 @@ export default function TechLayout() {
   const isMapRoute = pathname.startsWith('/map');
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f4f5f8] text-slate-800 font-sans relative">
+    <div className="min-h-screen flex flex-col bg-canvas text-ink font-sans relative">
       {!isMapRoute && <AmbientWash />}
 
       {/* Top bar */}
-      <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between sticky top-0 z-40">
+      <header className="h-16 bg-white border-b border-line px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
         <Brand
           suffix={
-            <span className="hidden sm:inline text-[11px] font-bold text-slate-600 border border-slate-300 rounded px-2 py-0.5 tracking-wide uppercase">
+            <span className="hidden sm:inline text-xs font-semibold text-ink-muted border border-line rounded-tile px-2 py-0.5 tracking-wide uppercase">
               Field
             </span>
           }
         />
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
+        <nav className="hidden md:flex items-center gap-1.5" aria-label="Primary">
           {NAV_ITEMS.map(({ to, label, icon: Icon, hasCount }) => (
             <NavLink
               key={to}
               to={to}
               className={({ isActive }) =>
-                `flex items-center gap-2 px-3.5 py-2 rounded-md text-[0.9375rem] font-medium transition-colors focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
+                `flex items-center gap-2 px-3.5 py-2 rounded-tile text-sm font-medium transition-all focus-visible:ring-2 focus-visible:ring-brand ${
                   isActive
-                    ? 'border-b-[3px] border-[#0c4a6e] bg-slate-50 text-slate-900 font-semibold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border-b-[3px] border-transparent'
+                    ? 'bg-white shadow-soft text-ink font-semibold border border-line'
+                    : 'text-ink-muted hover:text-ink hover:bg-canvas border border-transparent'
                 }`
               }
             >
-              <Icon className="w-4 h-4 stroke-[1.75] text-slate-500" />
+              <Icon className="w-[18px] h-[18px] stroke-[1.75] text-ink-muted shrink-0" />
               <span>{label}</span>
               {hasCount && actionableCount > 0 && (
-                <span className="w-2 h-2 rounded-full bg-rose-600 shrink-0" />
+                <span className="status-dot danger" />
               )}
             </NavLink>
           ))}
@@ -137,16 +137,14 @@ export default function TechLayout() {
             type="button"
             onClick={toggleDutyStatus}
             title="Click to toggle On/Off duty status"
-            className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md border text-sm font-semibold transition cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e] ${
+            className={`inline-flex items-center gap-1.5 h-11 px-3 rounded-control border text-sm font-medium transition cursor-pointer min-h-[44px] focus-visible:ring-2 focus-visible:ring-brand ${
               isOnDuty
-                ? 'bg-white text-emerald-700 border-emerald-400 hover:bg-emerald-50'
-                : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                ? 'bg-white text-state-ok border-[#a7f3d0] hover:bg-state-ok-tint'
+                : 'bg-white text-ink-muted border-line hover:bg-canvas'
             }`}
           >
             <span
-              className={`w-2 h-2 rounded-full ${
-                isOnDuty ? 'bg-emerald-600' : 'bg-slate-500'
-              }`}
+              className={`status-dot ${isOnDuty ? 'ok' : 'warn'}`}
             />
             {isOnDuty ? 'On duty' : 'Off duty'}
           </button>
@@ -156,34 +154,34 @@ export default function TechLayout() {
             <button
               type="button"
               onClick={() => setBellOpen(!bellOpen)}
-              className="relative p-2 rounded-md text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+              className="relative p-2.5 rounded-control text-ink-muted hover:text-ink hover:bg-canvas transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-brand"
               title="Dispatch Notifications"
             >
-              <Bell className="w-4 h-4 stroke-[2]" />
+              <Bell className="w-[18px] h-[18px] stroke-[1.75]" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white" />
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-state-danger ring-2 ring-white" />
               )}
             </button>
 
             {bellOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-md border border-slate-200 z-50 overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-900">
+              <div className="absolute right-0 mt-2 w-80 bg-white rounded-card border border-line shadow-soft z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-line flex items-center justify-between">
+                  <span className="text-sm font-semibold text-ink">
                     Dispatch Alerts ({unreadCount})
                   </span>
                   {unreadCount > 0 && (
                     <button
                       type="button"
                       onClick={handleMarkAllRead}
-                      className="text-xs font-semibold text-[#0c4a6e] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-brand hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <CheckCheck className="w-3.5 h-3.5" /> Read all
                     </button>
                   )}
                 </div>
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                <div className="max-h-72 overflow-y-auto divide-y divide-line">
                   {notifications.length === 0 ? (
-                    <div className="py-6 text-center text-xs text-slate-500">
+                    <div className="py-6 text-center text-xs text-ink-muted">
                       No dispatch alerts yet.
                     </div>
                   ) : (
@@ -192,17 +190,17 @@ export default function TechLayout() {
                         key={n.notification_id}
                         type="button"
                         onClick={() => handleNotifClick(n)}
-                        className={`w-full p-3 text-left hover:bg-slate-50 transition-colors cursor-pointer ${
-                          !n.is_read ? 'bg-sky-50/50' : ''
+                        className={`w-full p-3 text-left hover:bg-canvas transition-colors cursor-pointer ${
+                          !n.is_read ? 'bg-[#f0f9ff]' : ''
                         }`}
                       >
-                        <div className="text-sm font-semibold text-slate-900 truncate">
+                        <div className="text-sm font-semibold text-ink truncate">
                           {n.title}
                         </div>
-                        <p className="text-sm text-slate-600 line-clamp-2 mt-0.5">
+                        <p className="text-sm text-ink-muted line-clamp-2 mt-0.5">
                           {n.message}
                         </p>
-                        <span className="text-xs font-mono text-slate-500 mt-1 block">
+                        <span className="text-xs text-ink-muted mt-1 block">
                           {n.created_at}
                         </span>
                       </button>
@@ -214,7 +212,7 @@ export default function TechLayout() {
           </div>
 
           <div
-            className="hidden sm:flex w-8 h-8 rounded-full bg-[#0c4a6e] text-white font-semibold text-xs items-center justify-center"
+            className="hidden sm:flex w-8 h-8 rounded-full bg-white border border-line text-ink font-semibold text-xs items-center justify-center"
             title={user?.full_name}
           >
             {initials(user?.full_name)}
@@ -223,9 +221,9 @@ export default function TechLayout() {
             onClick={handleLogout}
             title="Sign out"
             aria-label="Sign out"
-            className="p-2 rounded-md text-slate-600 hover:text-rose-700 hover:bg-slate-100 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-rose-600"
+            className="p-2.5 rounded-control text-ink-muted hover:text-state-danger hover:bg-canvas transition-colors cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center focus-visible:ring-2 focus-visible:ring-state-danger"
           >
-            <LogOut className="w-4 h-4 stroke-[2]" />
+            <LogOut className="w-[18px] h-[18px] stroke-[1.75]" />
           </button>
         </div>
       </header>
@@ -233,7 +231,7 @@ export default function TechLayout() {
       {/* Page content */}
       <main
         className={`relative z-10 flex-1 w-full ${
-          isMapRoute ? '' : 'p-4 pb-28 md:pb-10'
+          isMapRoute ? '' : 'p-6 pb-28 md:pb-10'
         }`}
       >
         <Outlet />
@@ -242,25 +240,25 @@ export default function TechLayout() {
       {/* Mobile bottom tab bar */}
       <nav
         aria-label="Primary"
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white border-t border-line pb-[env(safe-area-inset-bottom)] shadow-soft"
       >
-        <div className="h-16 grid grid-cols-3 max-w-2xl mx-auto">
+        <div className="h-16 grid grid-cols-3 max-w-2xl mx-auto px-2 items-center">
           {NAV_ITEMS.map(({ to, label, icon: Icon, hasCount }) => (
             <NavLink
               key={to}
               to={to}
-              className="flex flex-col items-center justify-center gap-1 focus-visible:outline-none"
+              className="flex flex-col items-center justify-center gap-1 min-h-[44px] py-1 focus-visible:outline-none"
             >
               {({ isActive }) => (
                 <>
                   <span
-                    className={`relative w-14 h-7 rounded-full flex items-center justify-center transition-colors ${
-                      isActive ? 'bg-[#0c4a6e] text-white' : 'text-slate-600'
+                    className={`relative px-4 py-1 rounded-pill flex items-center justify-center transition-all ${
+                      isActive ? 'bg-white shadow-soft text-ink font-semibold border border-line' : 'text-ink-muted border border-transparent'
                     }`}
                   >
-                    <Icon className="w-4 h-4 stroke-[2]" />
+                    <Icon className="w-[18px] h-[18px] stroke-[1.75]" />
                     {hasCount && actionableCount > 0 && (
-                      <span className="absolute -top-1 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-700 text-white text-xs font-bold flex items-center justify-center ring-2 ring-white">
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-pill bg-state-danger text-white text-xs font-semibold flex items-center justify-center ring-2 ring-white">
                         {actionableCount}
                       </span>
                     )}
@@ -268,8 +266,8 @@ export default function TechLayout() {
                   <span
                     className={`text-xs ${
                       isActive
-                        ? 'font-bold text-[#0c4a6e]'
-                        : 'font-medium text-slate-600'
+                        ? 'font-semibold text-ink'
+                        : 'font-medium text-ink-muted'
                     }`}
                   >
                     {label}

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, KeyRound, Lock, Check, Circle } from 'lucide-react';
 import { authApi } from '../../api/auth_api';
-import { Alert, Card, IconTile, btnPrimary, inputClass } from './ui';
+import { Alert, Card, btnPrimary, inputClass } from './ui';
 
 /**
  * Shared change-password card (Resident Settings + Technician Profile).
@@ -44,19 +44,21 @@ export default function PasswordCard() {
   };
 
   const Rule = ({ ok, children }) => (
-    <li className={`flex items-center gap-1.5 text-xs ${ok ? 'text-emerald-700' : 'text-slate-400'}`}>
-      {ok ? <Check className="w-3.5 h-3.5" /> : <Circle className="w-3 h-3" />}
+    <li className={`flex items-center gap-1.5 text-xs ${ok ? 'text-state-ok font-medium' : 'text-ink-muted'}`}>
+      {ok ? <Check className="w-3.5 h-3.5 stroke-[2]" /> : <Circle className="w-3 h-3 stroke-[2]" />}
       {children}
     </li>
   );
 
   return (
-    <Card className="p-5 space-y-4">
+    <Card className="space-y-4">
       <div className="flex items-center gap-3">
-        <IconTile icon={KeyRound} tone="slate" />
+        <span className="icon-chip">
+          <KeyRound className="w-[18px] h-[18px] stroke-[1.75] text-ink" />
+        </span>
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Password</h3>
-          <p className="text-[11px] text-slate-500">Change the password you use to sign in</p>
+          <h3 className="text-base font-semibold text-ink">Password</h3>
+          <p className="text-xs text-ink-muted">Change the password you use to sign in</p>
         </div>
       </div>
 
@@ -65,7 +67,7 @@ export default function PasswordCard() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="space-y-1.5">
-          <label htmlFor="pw-current" className="block text-xs font-semibold text-slate-700">Current password</label>
+          <label htmlFor="pw-current" className="block text-sm font-semibold text-ink">Current password</label>
           <input
             id="pw-current"
             type={show ? 'text' : 'password'}
@@ -79,11 +81,11 @@ export default function PasswordCard() {
 
         <div className="space-y-1.5">
           <div className="flex items-baseline justify-between">
-            <label htmlFor="pw-new" className="block text-xs font-semibold text-slate-700">New password</label>
+            <label htmlFor="pw-new" className="block text-sm font-semibold text-ink">New password</label>
             <button
               type="button"
               onClick={() => setShow((s) => !s)}
-              className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+              className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-ink cursor-pointer"
             >
               {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               {show ? 'Hide' : 'Show'}
@@ -101,7 +103,7 @@ export default function PasswordCard() {
         </div>
 
         <div className="space-y-1.5">
-          <label htmlFor="pw-confirm" className="block text-xs font-semibold text-slate-700">Confirm new password</label>
+          <label htmlFor="pw-confirm" className="block text-sm font-semibold text-ink">Confirm new password</label>
           <input
             id="pw-confirm"
             type={show ? 'text' : 'password'}
@@ -123,7 +125,7 @@ export default function PasswordCard() {
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <Lock className="w-4 h-4" />
+              <Lock className="w-[18px] h-[18px] stroke-[1.75]" />
               <span>Update password</span>
             </>
           )}
@@ -132,3 +134,4 @@ export default function PasswordCard() {
     </Card>
   );
 }
+

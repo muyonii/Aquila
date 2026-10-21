@@ -1102,3 +1102,217 @@ html[data-theme="dark"] .text-slate-500,
 html[data-theme="dark"] .text-\[\#86868b\] {
   color: #94a3b8 !important;
 }
+/* ========================================
+   AQUILA SOFT UI SYSTEM (admin + portals)
+   Water-blue surfaces, 16/12px radii, one soft shadow.
+   Prefixed `aq-` to avoid collisions with landing styles.
+======================================== */
+
+:root {
+  --aq-canvas: #f2f6f9;
+  --aq-line: #dde6ec;
+  --aq-ink: #0f1f2b;
+  --aq-ink-muted: #4a5b67;
+  --aq-tint: linear-gradient(160deg, #ffffff 0%, #e6f0f6 100%);
+  --aq-tint-flat: #eef4f8;
+  --aq-brand: #0c4a6e;
+  --aq-brand-grad: linear-gradient(180deg, #0f5c85 0%, #0c4a6e 100%);
+  --aq-shadow: 0 1px 2px rgba(15, 31, 43, 0.04), 0 4px 12px rgba(15, 31, 43, 0.04);
+}
+
+@layer components {
+  /* Panels */
+  .aq-card {
+    background: var(--aq-tint);
+    border: 1px solid var(--aq-line);
+    border-radius: 16px;
+    box-shadow: var(--aq-shadow);
+    padding: 20px;
+  }
+  .aq-card-flush { padding: 0; overflow: hidden; }
+  .aq-tile {
+    background: #ffffff;
+    border: 1px solid var(--aq-line);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .aq-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 16px -20px -20px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--aq-line);
+    background: rgba(15, 31, 43, 0.025);
+    border-radius: 0 0 16px 16px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--aq-ink);
+    transition: background-color 0.15s ease;
+  }
+  a.aq-foot:hover, button.aq-foot:hover { background: rgba(15, 31, 43, 0.05); }
+
+  /* Neutral icon chip (no colored backgrounds) */
+  .aq-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid var(--aq-line);
+    border-radius: 12px;
+    color: var(--aq-ink);
+  }
+
+  /* Pills and tabs */
+  .aq-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    background: #ffffff;
+    border: 1px solid var(--aq-line);
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--aq-ink);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .aq-chip:hover { background: #f4f8fb; }
+  .aq-tab {
+    padding: 10px 2px;
+    margin-right: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--aq-ink-muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .aq-tab:hover { color: var(--aq-ink); }
+  .aq-tab[aria-selected='true'], .aq-tab.is-active {
+    color: var(--aq-ink);
+    border-bottom-color: var(--aq-brand);
+  }
+
+  /* Buttons and inputs */
+  .aq-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 12px;
+    background: var(--aq-brand-grad);
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+  .aq-btn:hover { filter: brightness(1.08); }
+  .aq-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .aq-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid var(--aq-line);
+    color: var(--aq-ink);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+  }
+  .aq-btn-secondary:hover { background: #f4f8fb; }
+  .aq-input {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px;
+    background: #ffffff;
+    border: 1px solid #74899b;
+    border-radius: 12px;
+    font-size: 1rem;
+    color: var(--aq-ink);
+  }
+  .aq-input::placeholder { color: #5b6b77; }
+  .aq-input:focus { outline: 2px solid var(--aq-brand); outline-offset: 1px; }
+
+  /* Section title row inside a card */
+  .aq-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .aq-card-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--aq-ink);
+  }
+  .aq-label { font-size: 0.875rem; color: var(--aq-ink-muted); }
+  .aq-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
+}
+
+/* Global focus ring for the app shell */
+.aq-focus:focus-visible,
+.aq-card a:focus-visible,
+.aq-card button:focus-visible {
+  outline: 2px solid var(--aq-brand);
+  outline-offset: 2px;
+}
+
+/* Dark theme support for the soft UI system */
+html[data-theme="dark"] {
+  --aq-canvas: #0b1620;
+  --aq-line: rgba(255, 255, 255, 0.1);
+  --aq-ink: #f1f5f9;
+  --aq-ink-muted: #a9bac6;
+  --aq-tint: linear-gradient(160deg, #15222e 0%, #101c26 100%);
+  --aq-tint-flat: #101c26;
+  --aq-shadow: none;
+}
+html[data-theme="dark"] .aq-tile,
+html[data-theme="dark"] .aq-icon,
+html[data-theme="dark"] .aq-chip,
+html[data-theme="dark"] .aq-btn-secondary,
+html[data-theme="dark"] .aq-input {
+  background: #1a2a38;
+  color: var(--aq-ink);
+  border-color: var(--aq-line);
+}
+html[data-theme="dark"] .aq-chip:hover,
+html[data-theme="dark"] .aq-btn-secondary:hover { background: #22364a; }
+html[data-theme="dark"] .aq-foot { background: rgba(255, 255, 255, 0.04); color: var(--aq-ink); }
+
+/* Tinted surface used on container panels (swapped in for bg-white on large cards) */
+.aq-surface {
+  background: var(--aq-tint) !important;
+  box-shadow: var(--aq-shadow);
+}
+
+/* Admin shell: accessible form-field borders (3:1) and a guaranteed visible focus ring */
+.aq-admin input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+.aq-admin select,
+.aq-admin textarea {
+  border-color: #74899b;
+}
+.aq-admin :focus-visible {
+  outline: 2px solid #0c4a6e;
+  outline-offset: 2px;
+}
+html[data-theme="dark"] .aq-admin :focus-visible { outline-color: #7fb3cc; }

@@ -83,24 +83,29 @@ export default function DashboardPage() {
   }, [realIncidents, techCount]);
 
   return (
-    <div className="min-h-full bg-[#f4f5f8] text-slate-900 p-6 sm:p-8 space-y-6 font-sans">
+    <div className="min-h-full bg-canvas text-slate-900 p-6 sm:p-8 space-y-5 font-sans">
       <DashboardHeader user={user} />
 
-      {/* MAS Agent Liveness & Watchdog Bar */}
       <AgentHeartbeatBar />
 
-      <DashboardKpiGrid summary={summary} kpis={kpis} />
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+        <div className="xl:col-span-5">
+          <DashboardKpiGrid summary={summary} kpis={kpis} />
+        </div>
+        <div className="xl:col-span-7">
+          <SystemMapPreview />
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
+        <div className="xl:col-span-8 space-y-5">
           <CommunityFlowChart />
           <PurokNodeOverview nodes={summary.nodes} />
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
+        <div className="xl:col-span-4 space-y-5">
           <PriorityIncidentWidget incidents={realIncidents} />
           <AdminActionHub />
-          <SystemMapPreview />
         </div>
       </div>
     </div>

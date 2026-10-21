@@ -82,7 +82,7 @@ export default function VerificationTimer({
       {/* Header Bar + Demo Fast-Track Button */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <Clock className="w-4 h-4 text-slate-500 shrink-0 stroke-[1.75]" />
+          <Clock className="w-4 h-4 text-slate-600 shrink-0 stroke-[1.75]" />
           <div>
             <h4 className="text-sm font-semibold text-slate-900">Post-Repair Verification (BR-07)</h4>
             <p className="text-sm text-slate-600">15-minute quiescent line observation window</p>
@@ -97,7 +97,7 @@ export default function VerificationTimer({
           className="inline-flex items-center gap-1.5 h-8 px-3 text-sm font-semibold text-[#0c4a6e] hover:text-[#075985] bg-white hover:bg-slate-50 rounded-md border border-slate-300 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
           title="Simulate 15-minute passage for thesis demonstration"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isEvaluating ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${isEvaluating ? 'animate-spin': ''}`} />
           <span>Verify Now (Demo)</span>
         </button>
       </div>
@@ -113,8 +113,8 @@ export default function VerificationTimer({
         <div className="text-right">
           <span className="text-sm text-slate-600 block">Observed Flow</span>
           <span className={`text-[32px] leading-tight font-semibold font-mono tabular-nums ${
-            isBurst ? 'text-rose-600' : isQuiescent ? 'text-emerald-600' : 'text-amber-600'
-          }`}>
+ isBurst ? 'text-rose-600': isQuiescent ? 'text-emerald-600': 'text-amber-600'
+ }`}>
             {currentFlow.toFixed(2)} <span className="text-sm font-semibold text-slate-600">LPM</span>
           </span>
         </div>
@@ -128,7 +128,7 @@ export default function VerificationTimer({
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <div className="flex justify-between text-xs text-slate-600 font-mono">
+        <div className="flex justify-between text-[0.8125rem] text-slate-600 font-mono">
           <span>0m (Start)</span>
           <span>{progressPercent}% Elapsed</span>
           <span>15m (Auto-Close)</span>

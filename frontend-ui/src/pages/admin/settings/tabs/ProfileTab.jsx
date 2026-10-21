@@ -116,10 +116,10 @@ export default function ProfileTab() {
     <div className="space-y-6 pb-28 sm:pb-36 animate-in fade-in duration-150">
       
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
           My Account
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
           Manage your personal details and login credentials.
         </p>
       </div>
@@ -127,48 +127,48 @@ export default function ProfileTab() {
       {/* Card 1: Profile Banner & Personal Details */}
       <form
         onSubmit={handleSaveProfile}
-        className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] overflow-hidden"
+        className="aq-surface rounded-card border border-line shadow-soft overflow-hidden"
       >
-        <div className="h-28 bg-gradient-to-r from-[#0c4a6e] via-[#0284c7] to-[#0369a1] relative" />
+        <div className="h-28 bg-[#0c4a6e] relative" />
 
         <div className="px-6 pb-6 relative space-y-4">
           <div className="flex justify-between items-end -mt-12">
-            <div className="w-24 h-24 rounded-full border-4 border-white bg-[#18181b] text-white font-extrabold text-2xl flex items-center justify-center shadow-md shrink-0">
+            <div className="w-24 h-24 rounded-full border-4 border-white bg-[#18181b] text-white font-semibold text-2xl flex items-center justify-center shadow-soft shrink-0">
               {initials}
             </div>
 
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200 uppercase tracking-wider flex items-center gap-1.5">
+            <span className="px-2.5 py-1 rounded-full text-[0.8125rem] font-semibold bg-sky-50 text-sky-700 border border-sky-200 flex items-center gap-1.5">
               <Shield className="h-3 w-3" />
               <span>System Administrator</span>
             </span>
           </div>
 
           <div>
-            <h3 className="text-lg font-bold text-slate-900 leading-tight">
+            <h3 className="text-lg font-semibold text-slate-900 leading-tight">
               {displayTitle}
             </h3>
-            <p className="text-xs text-slate-500 font-mono mt-0.5">
+            <p className="text-[0.8125rem] text-slate-600 font-mono mt-0.5">
               {user?.email || 'admin@bawasa.gov.ph'}
             </p>
           </div>
 
           {profileMsg && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-control text-[0.8125rem] text-emerald-800 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{profileMsg}</span>
             </div>
           )}
 
           {profileErr && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-control text-[0.8125rem] text-rose-700 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
               <span>{profileErr}</span>
             </div>
           )}
 
-          <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-200/60 space-y-3.5">
+          <div className="bg-slate-50 rounded-control p-4 border border-slate-200/60 space-y-3.5">
             <div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                 DISPLAY NAME / NICKNAME
               </span>
               <input
@@ -176,13 +176,13 @@ export default function ProfileTab() {
                 value={nickname}
                 onChange={(e) => handleFieldChange('nickname', e.target.value, setNickname)}
                 placeholder="Nickname"
-                className="w-full bg-transparent text-xs font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0284c7] transition-all py-0.5"
+                className="w-full bg-transparent text-[0.8125rem] font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0369a1] transition-all py-0.5"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200/50">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                   FIRST NAME
                 </span>
                 <input
@@ -192,11 +192,11 @@ export default function ProfileTab() {
                   onChange={(e) =>
                     handleFieldChange('firstName', e.target.value, setFirstName)
                   }
-                  className="w-full bg-transparent text-xs font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0284c7] transition-all py-0.5"
+                  className="w-full bg-transparent text-[0.8125rem] font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0369a1] transition-all py-0.5"
                 />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                   LAST NAME
                 </span>
                 <input
@@ -206,22 +206,22 @@ export default function ProfileTab() {
                   onChange={(e) =>
                     handleFieldChange('lastName', e.target.value, setLastName)
                   }
-                  className="w-full bg-transparent text-xs font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0284c7] transition-all py-0.5"
+                  className="w-full bg-transparent text-[0.8125rem] font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0369a1] transition-all py-0.5"
                 />
               </div>
             </div>
 
             <div className="pt-2 border-t border-slate-200/50">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                 EMAIL ADDRESS
               </span>
-              <span className="text-xs font-mono text-slate-600 block py-0.5">
+              <span className="text-[0.8125rem] font-mono text-slate-600 block py-0.5">
                 {user?.email || 'admin@bawasa.gov.ph'}
               </span>
             </div>
 
             <div className="pt-2 border-t border-slate-200/50">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+              <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                 EMERGENCY PHONE NUMBER
               </span>
               <input
@@ -231,7 +231,7 @@ export default function ProfileTab() {
                   handleFieldChange('emergencyPhone', e.target.value, setPhone)
                 }
                 placeholder="+63 917 000 0001"
-                className="w-full bg-transparent text-xs font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0284c7] transition-all py-0.5"
+                className="w-full bg-transparent text-[0.8125rem] font-semibold text-slate-800 outline-none border-b border-transparent focus:border-[#0369a1] transition-all py-0.5"
               />
             </div>
           </div>
@@ -240,7 +240,7 @@ export default function ProfileTab() {
             <button
               type="submit"
               disabled={profileSaving}
-              className="px-4 py-2 rounded-xl bg-[#0c4a6e] hover:bg-[#075985] text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
+              className="px-4 py-2 rounded-control bg-[#0c4a6e] hover:bg-[#075985] text-white text-[0.8125rem] font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
             >
               {profileSaving ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -256,26 +256,26 @@ export default function ProfileTab() {
       {/* Card 2: Working Password & Authentication Form */}
       <form
         onSubmit={handleChangePassword}
-        className="bg-white/85 backdrop-blur-xl rounded-2xl p-6 border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] space-y-4"
+        className="aq-surface rounded-card p-6 border border-line shadow-soft space-y-4"
       >
         <div>
-          <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <h3 className="text-[0.8125rem] font-semibold text-slate-900 ">
             Password and Authentication
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[0.8125rem] text-slate-600 mt-0.5">
             Update your administrator security password below.
           </p>
         </div>
 
         {pwMsg && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-control text-[0.8125rem] text-emerald-800 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{pwMsg}</span>
           </div>
         )}
 
         {pwErr && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center gap-2">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-control text-[0.8125rem] text-rose-700 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
             <span>{pwErr}</span>
           </div>
@@ -288,7 +288,7 @@ export default function ProfileTab() {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             placeholder="Current password"
-            className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0284c7]"
+            className="w-full bg-slate-50 border border-slate-200/80 rounded-control px-3.5 py-2.5 text-[0.8125rem] text-slate-800 outline-none focus:border-[#0369a1]"
           />
           <input
             type="password"
@@ -296,7 +296,7 @@ export default function ProfileTab() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password (min 8 chars)"
-            className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0284c7]"
+            className="w-full bg-slate-50 border border-slate-200/80 rounded-control px-3.5 py-2.5 text-[0.8125rem] text-slate-800 outline-none focus:border-[#0369a1]"
           />
           <input
             type="password"
@@ -304,7 +304,7 @@ export default function ProfileTab() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm new password"
-            className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-[#0284c7]"
+            className="w-full bg-slate-50 border border-slate-200/80 rounded-control px-3.5 py-2.5 text-[0.8125rem] text-slate-800 outline-none focus:border-[#0369a1]"
           />
         </div>
 
@@ -312,7 +312,7 @@ export default function ProfileTab() {
           <button
             type="submit"
             disabled={pwSaving}
-            className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
+            className="px-4 py-2 rounded-control bg-slate-900 hover:bg-slate-800 text-white text-[0.8125rem] font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-xs"
           >
             {pwSaving ? (
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />

@@ -84,7 +84,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="min-h-full bg-[#f4f5f8] text-[#1d1d1f] p-6 sm:p-10 space-y-8 select-none font-sans">
+    <div className="min-h-full bg-canvas text-slate-900 p-6 sm:p-10 space-y-8 select-none font-sans">
       <ReportsHeader
         startDate={startDate}
         endDate={endDate}

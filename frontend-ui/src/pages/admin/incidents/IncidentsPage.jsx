@@ -132,7 +132,7 @@ export default function IncidentsPage() {
   };
 
   return (
-    <div className="h-screen max-h-screen flex flex-col bg-[#f4f5f8] text-[#1d1d1f] p-5 sm:p-6 select-none font-sans overflow-hidden">
+    <div className="h-screen max-h-screen flex flex-col bg-canvas text-slate-900 p-5 sm:p-6 select-none font-sans overflow-hidden">
       <div className="shrink-0 mb-4">
         <IncidentHeader onLogComplaintClick={() => setIsComplaintModalOpen(true)} />
       </div>

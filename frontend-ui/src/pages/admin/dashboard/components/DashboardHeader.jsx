@@ -112,50 +112,44 @@ export default function DashboardHeader({ user }) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 border-b border-slate-200 pb-4">
-      {/* Left: Title & Subtitle */}
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Left: greeting + title */}
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
-          Dashboard
-        </h1>
-        <p className="text-sm text-slate-600 mt-0.5">
-          System Admin Officer · BAWASA Sector 03
+        <p className="text-sm text-slate-600">
+          {greeting}, {adminName}
         </p>
+        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Dashboard</h1>
       </div>
 
-      {/* Right: Plain text status + Bare bell button */}
-      <div className="flex items-center gap-3 text-sm text-slate-600">
-        <span className="flex items-center gap-1.5">
-          <span className={isConnected ? 'text-emerald-600' : 'text-amber-600'} aria-hidden="true">●</span>
+      {/* Right: status chip + bell */}
+      <div className="flex items-center gap-3">
+        <span className="aq-chip cursor-default">
+          <span className="aq-dot" style={{ background: isConnected ? '#0f766e' : '#b45309' }} aria-hidden="true" />
           <span>{isConnected ? 'Online' : 'Connecting'}</span>
-          <span>·</span>
-          <span>15s pulse</span>
-          <span>·</span>
-          <span>{formattedDate}</span>
+          <span className="text-slate-600">· 15s pulse · {formattedDate}</span>
         </span>
 
-        {/* Bare Bell Button */}
         <div className="relative" ref={bellRef}>
           <button
             type="button"
             onClick={() => setBellOpen(!bellOpen)}
-            className="p-1.5 text-slate-500 hover:text-slate-900 rounded-md transition-colors cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+            className="aq-icon !rounded-full hover:bg-[#f4f8fb] transition-colors cursor-pointer relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
             title="System Notifications"
             aria-label="System Notifications"
           >
-            <Bell className="w-4 h-4 stroke-[1.75]" />
+            <Bell className="w-[18px] h-[18px] stroke-[1.75]" />
             {unreadCount > 0 && (
-              <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-rose-600" />
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-rose-600 border-2 border-white" />
             )}
           </button>
 
           {bellOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-md border border-slate-200 z-50 overflow-hidden">
-              <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-card border border-line shadow-soft z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-line flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-slate-900">Notifications</span>
                   {unreadCount > 0 && (
-                    <span className="text-xs text-slate-600">
+                    <span className="text-[0.8125rem] text-slate-600">
                       ({unreadCount} unread)
                     </span>
                   )}
@@ -164,16 +158,16 @@ export default function DashboardHeader({ user }) {
                   <button
                     type="button"
                     onClick={handleMarkAllRead}
-                    className="text-xs font-semibold text-[#0c4a6e] hover:underline cursor-pointer"
+                    className="text-[0.8125rem] font-semibold text-[#0c4a6e] hover:underline cursor-pointer"
                   >
                     Mark all read
                   </button>
                 )}
               </div>
 
-              <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+              <div className="max-h-80 overflow-y-auto divide-y divide-line">
                 {notifications.length === 0 ? (
-                  <div className="py-8 px-4 text-center text-sm text-slate-500">
+                  <div className="py-8 px-4 text-center text-sm text-slate-600">
                     No system notifications.
                   </div>
                 ) : (
@@ -194,10 +188,10 @@ export default function DashboardHeader({ user }) {
                           </span>
                           {!n.is_read && <span className="w-1.5 h-1.5 rounded-full bg-[#0c4a6e] shrink-0" />}
                         </div>
-                        <p className="text-xs text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">
+                        <p className="text-[0.8125rem] text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">
                           {n.message}
                         </p>
-                        <span className="text-xs text-slate-500 mt-1 block">
+                        <span className="text-[0.8125rem] text-slate-600 mt-1 block">
                           {n.created_at}
                         </span>
                       </div>

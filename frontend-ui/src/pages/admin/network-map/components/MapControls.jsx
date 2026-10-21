@@ -11,13 +11,13 @@ export default function MapControls({
 }) {
   return (
     <div className="absolute bottom-8 right-6 z-30 flex flex-col gap-2 select-none">
-      <div className="bg-white/85 backdrop-blur-2xl rounded-2xl p-1 border border-white/90 shadow-[0_8px_32px_rgba(0,0,0,0.12)] flex flex-col gap-1">
+      <div className="aq-surface rounded-card p-1 border border-line shadow-soft flex flex-col gap-1">
         
         {/* Recenter View on Sector 03 */}
         <button
           type="button"
           onClick={onRecenter}
-          className="p-2.5 rounded-xl hover:bg-black/[0.05] text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+          className="p-2.5 rounded-control hover:bg-black/[0.05] text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
           title="Recenter Map on Sector 03"
         >
           <Crosshair className="h-4 w-4" />
@@ -27,9 +27,9 @@ export default function MapControls({
         <button
           type="button"
           onClick={onTogglePipes}
-          className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
-            showPipes ? 'bg-slate-100 text-[#007aff] font-bold' : 'hover:bg-black/[0.05] text-slate-600'
-          }`}
+          className={`p-2.5 rounded-control transition-colors cursor-pointer ${
+ showPipes ? 'bg-slate-100 text-[#0c4a6e] font-semibold': 'hover:bg-black/[0.05] text-slate-600'
+ }`}
           title={showPipes ? 'Hide Hydraulic Conduits' : 'Show Hydraulic Conduits'}
         >
           <NetworkIcon className="h-4 w-4" />
@@ -39,9 +39,9 @@ export default function MapControls({
         <button
           type="button"
           onClick={onToggleLayer}
-          className={`p-2.5 rounded-xl transition-colors cursor-pointer ${
-            mapLayer === 'satellite' ? 'bg-slate-100 text-[#007aff]' : 'hover:bg-black/[0.05] text-slate-600'
-          }`}
+          className={`p-2.5 rounded-control transition-colors cursor-pointer ${
+ mapLayer === 'satellite'? 'bg-slate-100 text-[#0c4a6e]': 'hover:bg-black/[0.05] text-slate-600'
+ }`}
           title="Toggle Satellite / Standard Map"
         >
           <Layers className="h-4 w-4" />

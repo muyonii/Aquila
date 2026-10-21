@@ -36,26 +36,26 @@ export default function NotificationsTab() {
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
         <span>Alerts & sound</span>
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
         Choose how and when you get notified during leak emergencies.
         </p>
       </div>
 
-      <div className="bg-white rounded-xl p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+      <div className="bg-white rounded-control p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
         {/* Siren Sound */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Critical Leak Sound Siren</h3>
-            <p className="text-[11px] text-[#86868b]">Play an audible alert chime when a severe P1 pipe rupture is flagged.</p>
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Critical Leak Sound Siren</h3>
+            <p className="text-[0.8125rem] text-slate-600">Play an audible alert chime when a severe P1 pipe rupture is flagged.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleTestSiren}
-              className="text-[11px] font-semibold text-[#007aff] hover:underline cursor-pointer"
+              className="text-[0.8125rem] font-semibold text-[#0c4a6e] hover:underline cursor-pointer"
             >
               Test Siren
             </button>
@@ -66,14 +66,14 @@ export default function NotificationsTab() {
         {/* Desktop Popups */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Desktop Push Popups</h3>
-            <p className="text-[11px] text-[#86868b]">Show alert boxes on your screen even when AQUILA is minimized.</p>
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Desktop Push Popups</h3>
+            <p className="text-[0.8125rem] text-slate-600">Show alert boxes on your screen even when AQUILA is minimized.</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleTestNotification}
-              className="text-[11px] font-semibold text-[#007aff] hover:underline cursor-pointer"
+              className="text-[0.8125rem] font-semibold text-[#0c4a6e] hover:underline cursor-pointer"
             >
               Send Test Alert
             </button>
@@ -84,8 +84,8 @@ export default function NotificationsTab() {
         {/* Daily Digest */}
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Daily Morning Water Loss Report</h3>
-            <p className="text-[11px] text-[#86868b]">Send a 6:00 AM email summarizing community water loss.</p>
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Daily Morning Water Loss Report</h3>
+            <p className="text-[0.8125rem] text-slate-600">Send a 6:00 AM email summarizing community water loss.</p>
           </div>
           <AppleToggle checked={dailyDigest} onChange={(v) => toggle('dailyDigest', v, setDailyDigest)} />
         </div>

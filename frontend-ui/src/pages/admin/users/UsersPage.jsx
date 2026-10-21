@@ -149,18 +149,18 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="min-h-full bg-[#f4f5f8] text-[#1d1d1f] p-6 sm:p-10 space-y-8 select-none relative font-sans">
+    <div className="min-h-full bg-canvas text-slate-900 p-6 sm:p-10 space-y-8 select-none relative font-sans">
       <UserHeader onAddUserClick={() => setIsAddModalOpen(true)} />
 
       <UserKpiCards kpis={kpis} />
 
       {/* Pending Resident Meter Binding Approval Queue (RA 10173) */}
       {pendingApprovals.length > 0 && (
-        <div className="bg-amber-50/90 backdrop-blur-xl rounded-2xl p-5 border border-amber-200 shadow-xs space-y-3">
+        <div className="bg-amber-50/90 rounded-card p-5 border border-amber-200 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-amber-700" />
-              <h3 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+              <h3 className="text-[0.8125rem] font-semibold text-amber-950 ">
                 Pending Resident Meter Approvals ({pendingApprovals.length})
               </h3>
             </div>
@@ -173,13 +173,13 @@ export default function UsersPage() {
             {pendingApprovals.map((req) => (
               <div
                 key={req.user_id}
-                className="bg-white rounded-xl p-3.5 border border-amber-200/80 flex items-center justify-between gap-3 shadow-2xs"
+                className="bg-white rounded-control p-3.5 border border-amber-200/80 flex items-center justify-between gap-3 shadow-2xs"
               >
                 <div className="min-w-0">
-                  <span className="font-bold text-xs text-slate-900 block truncate">
+                  <span className="font-semibold text-[0.8125rem] text-slate-900 block truncate">
                     {req.full_name}
                   </span>
-                  <span className="text-[11px] font-mono text-slate-500 block truncate">
+                  <span className="text-[0.8125rem] font-mono text-slate-600 block truncate">
                     {req.email} • Meter:{' '}
                     <strong className="text-slate-800">{req.assigned_node_id}</strong>
                   </span>
@@ -188,7 +188,7 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => handleApproveMeter(req.user_id, 'approve')}
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[0.8125rem] font-semibold flex items-center gap-1 cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Approve</span>
@@ -196,7 +196,7 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => handleApproveMeter(req.user_id, 'reject')}
-                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 cursor-pointer"
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 cursor-pointer"
                     title="Reject Request"
                   >
                     <XCircle className="w-4 h-4" />

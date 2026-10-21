@@ -16,38 +16,23 @@ export default function ActionCard({
   const isP1 = priority === 'P1';
   const isP2 = priority === 'P2';
 
-  const getTheme = () => {
-    if (isP1) return {
-      leftBorder: 'border-l-4 border-l-rose-600',
-      dotColor: 'text-rose-600',
-    };
-    if (isP2) return {
-      leftBorder: 'border-l-4 border-l-amber-600',
-      dotColor: 'text-amber-600',
-    };
-    return {
-      leftBorder: 'border-l-4 border-l-[#0c4a6e]',
-      dotColor: 'text-slate-600',
-    };
-  };
-
-  const theme = getTheme();
+  const dotStatus = isP1 ? 'danger' : isP2 ? 'warn' : 'ok';
 
   return (
-    <div className={`p-4 rounded-md border border-slate-200 ${theme.leftBorder} space-y-2`}>
+    <div className="card space-y-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold text-slate-700">
+        <span className="text-sm font-semibold text-ink">
           MAS Advisory Directive (INV-01)
         </span>
-        <span className={`flex items-center gap-1.5 text-sm ${theme.dotColor}`}>
-          <span aria-hidden="true">●</span>
-          <span className="text-slate-700">{priority} Priority</span>
+        <span className="flex items-center gap-1.5 text-sm font-medium">
+          <span className={`status-dot ${dotStatus}`} />
+          <span className="text-ink-muted">{priority} Priority</span>
         </span>
       </div>
 
       <div>
-        <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-        <p className="text-sm text-slate-600 mt-1 leading-relaxed bg-slate-50 p-3 rounded-md border border-slate-200">
+        <h4 className="text-sm font-semibold text-ink">{title}</h4>
+        <p className="tile text-sm text-ink-muted mt-2 leading-relaxed">
           {directive}
         </p>
       </div>

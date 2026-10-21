@@ -16,11 +16,11 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
   };
 
   return (
-    <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="aq-surface rounded-card border border-line shadow-soft overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-black/[0.05] text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <tr className="border-b border-black/[0.05] text-[0.8125rem] font-semibold text-slate-600 ">
               <th className="py-3 px-4 pl-6">User Profile</th>
               <th className="py-3 px-4">Role</th>
               <th className="py-3 px-4">Meter Assignment</th>
@@ -47,20 +47,20 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
                   key={u.user_id}
                   onClick={() => onSelectUser(u)}
                   className={`group transition-colors duration-150 cursor-pointer ${
-                    isSelected ? 'bg-sky-50/70' : 'hover:bg-black/[0.02]'
-                  }`}
+ isSelected ? 'bg-sky-50/70': 'hover:bg-black/[0.02]'
+ }`}
                 >
                   {/* User Profile */}
                   <td className="py-3.5 px-4 pl-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0 aspect-square shadow-2xs">
+                      <div className="w-9 h-9 rounded-full bg-slate-900 text-white font-semibold text-[0.8125rem] flex items-center justify-center shrink-0 aspect-square shadow-2xs">
                         {initials}
                       </div>
                       <div className="overflow-hidden">
-                        <span className="font-semibold text-xs text-slate-900 block truncate">
+                        <span className="font-semibold text-[0.8125rem] text-slate-900 block truncate">
                           {u.full_name}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-mono block truncate">
+                        <span className="text-[0.8125rem] text-slate-600 font-mono block truncate">
                           {u.email}
                         </span>
                       </div>
@@ -75,14 +75,14 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
                   </td>
 
                   {/* Meter Assignment */}
-                  <td className="py-3.5 px-4 text-xs">
+                  <td className="py-3.5 px-4 text-[0.8125rem]">
                     {u.role === 'resident' ? (
                       u.assigned_node_id ? (
-                        <div className="flex items-center gap-1.5 font-mono text-[11px] text-slate-800">
-                          <span className="font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                        <div className="flex items-center gap-1.5 font-mono text-[0.8125rem] text-slate-800">
+                          <span className="font-semibold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
                             {u.assigned_node_id}
                           </span>
-                          <span className="text-slate-400 truncate max-w-[160px]">
+                          <span className="text-slate-600 truncate max-w-[160px]">
                             {u.household_label || 'Linked Meter'}
                           </span>
                         </div>
@@ -92,14 +92,14 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
                         </span>
                       )
                     ) : (
-                      <span className="text-slate-400 text-[11px] font-medium">
+                      <span className="text-slate-600 text-[0.8125rem] font-medium">
                         Global Cluster Access
                       </span>
                     )}
                   </td>
 
                   {/* Account & Meter Approval Status */}
-                  <td className="py-3.5 px-4 text-xs">
+                  <td className="py-3.5 px-4 text-[0.8125rem]">
                     {isInactive ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
                         Suspended
@@ -123,10 +123,10 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
                         e.stopPropagation();
                         onSelectUser(u);
                       }}
-                      className="inline-flex items-center gap-1 text-xs text-slate-500 group-hover:text-slate-900 font-medium transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 text-[0.8125rem] text-slate-600 group-hover:text-slate-900 font-medium transition-colors cursor-pointer"
                     >
                       <span>Inspect</span>
-                      <ChevronRight className="h-3 w-3 stroke-[2] text-slate-400 group-hover:text-slate-800" />
+                      <ChevronRight className="h-3 w-3 stroke-[2] text-slate-600 group-hover:text-slate-800" />
                     </button>
                   </td>
                 </tr>
@@ -136,7 +136,7 @@ export default function UserTable({ users, selectedUserId, onSelectUser }) {
         </table>
 
         {users.length === 0 && (
-          <div className="py-12 text-center text-xs text-slate-400">
+          <div className="py-12 text-center text-[0.8125rem] text-slate-600">
             No accounts match the current filter or search criteria.
           </div>
         )}

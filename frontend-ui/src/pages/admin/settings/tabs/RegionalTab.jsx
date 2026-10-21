@@ -39,26 +39,26 @@ export default function RegionalTab() {
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
       <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+        <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
            {language === 'fil' ? 'Oras, Yunit at Wika' : 'Units & Regional'}
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-600">
           {language === 'fil'
             ? 'Piliin ang sukatan ng tubig, format ng oras, at wika ng sistema.'
             : 'Choose measurement units, time formats, and language.'}
         </p>
       </div>
 
-      <div className="bg-white rounded-xl p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
+      <div className="bg-white rounded-control p-5 border border-black/[0.06] shadow-[0_1px_3px_rgba(0,0,0,0.02)] space-y-4">
         {/* Water Units */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Water Volume Unit</h3>
-            <p className="text-[11px] text-[#86868b]">
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Water Volume Unit</h3>
+            <p className="text-[0.8125rem] text-slate-600">
               Primary unit displayed on dashboard KPIs.
             </p>
           </div>
-          <div className="flex rounded-lg bg-[#efeff1] p-0.5 text-xs font-medium">
+          <div className="flex rounded-lg bg-slate-50 p-0.5 text-[0.8125rem] font-medium">
             {[
               { id: 'liters', label: 'Liters (L)' },
               { id: 'm3', label: 'Cubic Meters (m³)' }
@@ -68,10 +68,10 @@ export default function RegionalTab() {
                 type="button"
                 onClick={() => select('volumeUnit', u.id, setVolumeUnit)}
                 className={`px-3 py-1 rounded-md cursor-pointer transition-colors ${
-                  volumeUnit === u.id
-                    ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold'
-                    : 'text-[#86868b]'
-                }`}
+ volumeUnit === u.id
+ ? 'bg-white text-slate-900 shadow-xs font-semibold'
+ : 'text-slate-600'
+ }`}
               >
                 {u.label}
               </button>
@@ -82,12 +82,12 @@ export default function RegionalTab() {
         {/* Clock */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Clock Format</h3>
-            <p className="text-[11px] text-[#86868b]">
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Clock Format</h3>
+            <p className="text-[0.8125rem] text-slate-600">
               Standard 12-hour AM/PM or 24-hour military clock.
             </p>
           </div>
-          <div className="flex rounded-lg bg-[#efeff1] p-0.5 text-xs font-medium">
+          <div className="flex rounded-lg bg-slate-50 p-0.5 text-[0.8125rem] font-medium">
             {[
               { id: '12h', label: '12-Hour (2:30 PM)' },
               { id: '24h', label: '24-Hour (14:30)' }
@@ -97,10 +97,10 @@ export default function RegionalTab() {
                 type="button"
                 onClick={() => select('clockFormat', c.id, setClockFormat)}
                 className={`px-3 py-1 rounded-md cursor-pointer transition-colors ${
-                  clockFormat === c.id
-                    ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold'
-                    : 'text-[#86868b]'
-                }`}
+ clockFormat === c.id
+ ? 'bg-white text-slate-900 shadow-xs font-semibold'
+ : 'text-slate-600'
+ }`}
               >
                 {c.label}
               </button>
@@ -111,12 +111,12 @@ export default function RegionalTab() {
         {/* Language */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-xs font-bold text-[#1d1d1f]">Language</h3>
-            <p className="text-[11px] text-[#86868b]">
+            <h3 className="text-[0.8125rem] font-semibold text-slate-900">Language</h3>
+            <p className="text-[0.8125rem] text-slate-600">
               Community terminology mode.
             </p>
           </div>
-          <div className="flex rounded-lg bg-[#efeff1] p-0.5 text-xs font-medium">
+          <div className="flex rounded-lg bg-slate-50 p-0.5 text-[0.8125rem] font-medium">
             {[
               { id: 'en', label: 'English' },
               { id: 'fil', label: 'Filipino / Tagalog' }
@@ -126,10 +126,10 @@ export default function RegionalTab() {
                 type="button"
                 onClick={() => select('language', l.id, setLanguage)}
                 className={`px-3 py-1 rounded-md cursor-pointer transition-colors ${
-                  language === l.id
-                    ? 'bg-white text-[#1d1d1f] shadow-xs font-semibold'
-                    : 'text-[#86868b]'
-                }`}
+ language === l.id
+ ? 'bg-white text-slate-900 shadow-xs font-semibold'
+ : 'text-slate-600'
+ }`}
               >
                 {l.label}
               </button>
@@ -138,8 +138,8 @@ export default function RegionalTab() {
         </div>
 
         {/* Live Regional Formatting Preview */}
-        <div className="p-4 rounded-xl bg-[#f5f5f7] border border-black/[0.04] space-y-2 text-xs">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-[#86868b]">
+        <div className="p-4 rounded-control bg-slate-50 border border-black/[0.04] space-y-2 text-[0.8125rem]">
+          <div className="text-[0.8125rem] font-semibold text-slate-600">
             Live Regional Output Preview
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2 font-mono text-slate-800">
@@ -156,7 +156,7 @@ export default function RegionalTab() {
         <button
           type="button"
           onClick={handleReset}
-          className="text-xs text-[#86868b] hover:text-[#1d1d1f] underline cursor-pointer"
+          className="text-[0.8125rem] text-slate-600 hover:text-[#1d1d1f] underline cursor-pointer"
         >
           Restore Regional Defaults
         </button>

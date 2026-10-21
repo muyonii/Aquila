@@ -375,29 +375,29 @@ export default function SystemInspectorPage() {
       : 'text-rose-600';
 
   return (
-    <div className="min-h-full bg-[#f4f5f8] text-[#1d1d1f] p-6 sm:p-10 space-y-6 select-none font-sans">
+    <div className="min-h-full bg-canvas text-slate-900 p-6 sm:p-10 space-y-6 select-none font-sans">
       
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black/[0.05] pb-6">
         <div>
-          <div className="text-[11px] font-mono font-bold tracking-widest text-slate-400 uppercase flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5 text-[#0284c7]" />
+          <div className="text-[0.8125rem] font-mono font-semibold text-slate-600 flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5 text-[#0369a1]" />
             <span>Multi-Agent System Inspector</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 mt-1">
             System Control &amp; Diagnostic Hub
           </h1>
-          <p className="text-xs text-slate-500">
+          <p className="text-[0.8125rem] text-slate-600">
             Real-time multi-agent brain state, mathematical decision justification, and interactive scenario control.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="bg-white/80 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/90 shadow-2xs text-right">
-            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <div className="bg-white px-3.5 py-2 rounded-control border border-line shadow-2xs text-right">
+            <div className="text-[0.8125rem] font-semibold text-slate-600 ">
               Engine Watchdog (30s Cutoff)
             </div>
-            <div className={`text-xs font-mono font-bold ${watchdogColor}`}>
+            <div className={`text-[0.8125rem] font-mono font-semibold ${watchdogColor}`}>
               ● {watchdogStatus} ({healthyAgentsCount}/3 Agents)
             </div>
           </div>
@@ -408,26 +408,26 @@ export default function SystemInspectorPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* Left: Live Node Telemetry & AI Brain Matrix (7 Cols) */}
-        <div className="lg:col-span-7 bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] p-5 space-y-4">
+        <div className="lg:col-span-7 aq-surface rounded-card border border-line shadow-soft p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-black/[0.05] pb-3">
             <div>
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Radio className="h-4 w-4 text-[#0284c7]" />
+              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <Radio className="h-4 w-4 text-[#0369a1]" />
                 <span>Live Node Telemetry &amp; AI Brain Matrix</span>
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-[0.8125rem] text-slate-600 mt-0.5">
                 Click any row to inspect decision trace math.
               </p>
             </div>
-            <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+            <span className="text-[0.8125rem] font-mono font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
               {allNodeIds.length} Nodes Registered
             </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-[0.8125rem] border-collapse">
               <thead>
-                <tr className="border-b border-black/[0.05] text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <tr className="border-b border-black/[0.05] text-[0.8125rem] font-semibold text-slate-600 ">
                   <th className="py-2.5 px-3">Node</th>
                   <th className="py-2.5 px-3">Flow (L/m)</th>
                   <th className="py-2.5 px-3">Leak Prob</th>
@@ -454,24 +454,24 @@ export default function SystemInspectorPage() {
                       key={nodeId}
                       onClick={() => setSelectedNode(nodeId)}
                       className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-sky-50/80 font-semibold' : 'hover:bg-black/[0.02]'
-                      }`}
+ isSelected ? 'bg-sky-50/80 font-semibold': 'hover:bg-black/[0.02]'
+ }`}
                     >
-                      <td className="py-3 px-3 font-mono font-bold text-slate-900">
+                      <td className="py-3 px-3 font-mono font-semibold text-slate-900">
                         {nodeId}
                       </td>
                       <td className="py-3 px-3 font-mono text-slate-800">
                         {flow.toFixed(2)}
                       </td>
                       <td className="py-3 px-3 font-mono">
-                        <span className={prob >= 40 ? 'text-rose-600 font-bold' : 'text-slate-500'}>
+                        <span className={prob >= 40 ? 'text-rose-600 font-semibold' : 'text-slate-600'}>
                           {prob.toFixed(1)}%
                         </span>
                       </td>
                       <td className="py-3 px-3 font-mono">
                         <span
                           className={
-                            fair.is_disadvantaged ? 'text-amber-600 font-bold' : 'text-slate-500'
+                            fair.is_disadvantaged ? 'text-amber-600 font-semibold' : 'text-slate-600'
                           }
                         >
                           {rdi.toFixed(2)}
@@ -479,20 +479,20 @@ export default function SystemInspectorPage() {
                       </td>
                       <td className="py-3 px-3">
                         {!isFresh ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-semibold border bg-slate-100 text-slate-500 border-slate-200">
+                          <span className="px-2 py-0.5 rounded text-[0.8125rem] font-semibold border bg-slate-100 text-slate-600 border-slate-200">
                             Sensor Offline
                           </span>
                         ) : (
                           <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
-                              leak.classification === 'LEAK'
-                                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                : leak.classification === 'SUSPICIOUS'
-                                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : fair.is_disadvantaged
-                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            }`}
+                            className={`px-2 py-0.5 rounded text-[0.8125rem] font-semibold border ${
+ leak.classification === 'LEAK'
+ ? 'bg-rose-50 text-rose-700 border-rose-200'
+ : leak.classification === 'SUSPICIOUS'
+ ? 'bg-amber-50 text-amber-700 border-amber-200'
+ : fair.is_disadvantaged
+ ? 'bg-purple-50 text-purple-700 border-purple-200'
+ : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+ }`}
                           >
                             {fair.is_disadvantaged
                               ? 'LOW WATER (RDI)'
@@ -500,7 +500,7 @@ export default function SystemInspectorPage() {
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right text-slate-400">
+                      <td className="py-3 px-3 text-right text-slate-600">
                         {isSelected ? '👉' : '🔍'}
                       </td>
                     </tr>
@@ -514,81 +514,81 @@ export default function SystemInspectorPage() {
         {/* Right: Decision Justification & Interactive Demo Control Hub (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
           
-          <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] p-5 space-y-4">
+          <div className="aq-surface rounded-card border border-line shadow-soft p-5 space-y-4">
             <div className="border-b border-black/[0.05] pb-3 flex justify-between items-center">
               <div>
-                <h3 className="text-sm font-bold text-slate-900">
+                <h3 className="text-sm font-semibold text-slate-900">
                   Decision Justification Trace
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-[0.8125rem] text-slate-600 mt-0.5">
                   Target Node:{' '}
                   <strong className="text-slate-900 font-mono">{selectedNode}</strong>
                 </p>
               </div>
-              <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+              <span className="text-[0.8125rem] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                 Rule Inspector
               </span>
             </div>
 
-            <div className={`p-3 rounded-xl border text-xs ${trace.badge}`}>
-              <div className="font-bold uppercase tracking-wider">{trace.status}</div>
+            <div className={`p-3 rounded-control border text-[0.8125rem] ${trace.badge}`}>
+              <div className="font-semibold ">{trace.status}</div>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="p-3 bg-slate-50 rounded-control border border-slate-200/60 space-y-1">
+              <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                 Academic Literature Term
               </span>
-              <span className="text-xs font-semibold text-slate-800 italic block">
+              <span className="text-[0.8125rem] font-semibold text-slate-800 italic block">
                 {trace.academicTerm}
               </span>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="p-3 bg-slate-50 rounded-control border border-slate-200/60 space-y-1">
+              <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                 Mathematical Rule Trigger
               </span>
-              <p className="text-xs font-mono text-slate-700 leading-relaxed">{trace.rule}</p>
+              <p className="text-[0.8125rem] font-mono text-slate-700 leading-relaxed">{trace.rule}</p>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 space-y-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+            <div className="p-3 bg-slate-50 rounded-control border border-slate-200/60 space-y-1">
+              <span className="text-[0.8125rem] font-semibold text-slate-600 block">
                 Field Action Directive
               </span>
-              <p className="text-xs text-slate-700 leading-relaxed font-medium">
+              <p className="text-[0.8125rem] text-slate-700 leading-relaxed font-medium">
                 {trace.directive}
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs font-mono pt-1">
+            <div className="grid grid-cols-2 gap-2 text-[0.8125rem] font-mono pt-1">
               <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/50">
-                <span className="text-[9px] text-slate-400 block font-sans uppercase">
+                <span className="text-[0.8125rem] text-slate-600 block font-sans ">
                   Instantaneous Flow
                 </span>
-                <span className="font-bold text-slate-900">
+                <span className="font-semibold text-slate-900">
                   {selectedIsFresh ? `${(selectedTelem.flow_rate_lpm || 0).toFixed(2)} LPM` : '0.00 LPM (Offline)'}
                 </span>
               </div>
               <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/50">
-                <span className="text-[9px] text-slate-400 block font-sans uppercase">
+                <span className="text-[0.8125rem] text-slate-600 block font-sans ">
                   Night Base Baseline
                 </span>
-                <span className="font-bold text-slate-900">
+                <span className="font-semibold text-slate-900">
                   {(selectedProfile.expected_night_flow_lpm || 0.05).toFixed(2)} LPM
                 </span>
               </div>
               <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/50">
-                <span className="text-[9px] text-slate-400 block font-sans uppercase">
+                <span className="text-[0.8125rem] text-slate-600 block font-sans ">
                   Cumulative Odometer
                 </span>
-                <span className="font-bold text-slate-900">
+                <span className="font-semibold text-slate-900">
                   {(selectedTelem.cumulative_liters || 0).toFixed(1)} L
                 </span>
               </div>
               <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200/50">
-                <span className="text-[9px] text-slate-400 block font-sans uppercase">
+                <span className="text-[0.8125rem] text-slate-600 block font-sans ">
                   Typical Max Duration
                 </span>
-                <span className="font-bold text-slate-900">
+                <span className="font-semibold text-slate-900">
                   {(selectedProfile.typical_max_duration_mins || 20).toFixed(0)} Mins
                 </span>
               </div>
@@ -596,29 +596,29 @@ export default function SystemInspectorPage() {
           </div>
 
           {/* Interactive Demo Control Hub */}
-          <div className="bg-white/85 backdrop-blur-xl rounded-2xl border border-white/90 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.04)] p-5 space-y-3">
+          <div className="aq-surface rounded-card border border-line shadow-soft p-5 space-y-3">
             <div className="border-b border-black/[0.05] pb-2.5 flex justify-between items-center">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                 <Zap className="h-4 w-4 text-amber-500" />
                 <span>Interactive Demo Control Hub</span>
               </h3>
               {actionLoading && (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-slate-600" />
               )}
             </div>
 
             {actionStatus && (
-              <div className="p-2.5 rounded-lg bg-sky-50 border border-sky-200 text-xs text-sky-800 font-mono">
+              <div className="p-2.5 rounded-lg bg-sky-50 border border-sky-200 text-[0.8125rem] text-sky-800 font-mono">
                 {actionStatus}
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-[0.8125rem]">
               <button
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleInjectScenario('BURST')}
-                className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-semibold transition-all cursor-pointer text-left"
+                className="p-2.5 rounded-control bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 font-semibold transition-all cursor-pointer text-left"
               >
                 🚨 Inject Pipe Burst (B1-002)
               </button>
@@ -627,7 +627,7 @@ export default function SystemInspectorPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleInjectScenario('TOILET')}
-                className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold transition-all cursor-pointer text-left"
+                className="p-2.5 rounded-control bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold transition-all cursor-pointer text-left"
               >
                 🚽 Inject Running Toilet (B1-005)
               </button>
@@ -636,7 +636,7 @@ export default function SystemInspectorPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleInjectScenario('EQUITY')}
-                className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-semibold transition-all cursor-pointer text-left"
+                className="p-2.5 rounded-control bg-purple-50 hover:bg-purple-100 text-purple-800 border border-purple-200 font-semibold transition-all cursor-pointer text-left"
               >
                 ⚖️ Inject Equity Deficit (B1-008)
               </button>
@@ -645,7 +645,7 @@ export default function SystemInspectorPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleInjectScenario('SQL_COMPACT')}
-                className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-semibold transition-all cursor-pointer text-left"
+                className="p-2.5 rounded-control bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 font-semibold transition-all cursor-pointer text-left"
               >
                 💾 Force SQL Compaction
               </button>
@@ -654,7 +654,7 @@ export default function SystemInspectorPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleInjectScenario('HEARTBEATS')}
-                className="p-2.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-semibold transition-all cursor-pointer text-left"
+                className="p-2.5 rounded-control bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 font-semibold transition-all cursor-pointer text-left"
               >
                 💓 Sync Agent Heartbeats
               </button>
@@ -663,7 +663,7 @@ export default function SystemInspectorPage() {
                 type="button"
                 disabled={actionLoading}
                 onClick={() => handleInjectScenario('RESET_NORMAL')}
-                className="p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold transition-all cursor-pointer text-left"
+                className="p-2.5 rounded-control bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold transition-all cursor-pointer text-left"
               >
                 🔄 Broadcast Normal Stream
               </button>

@@ -197,7 +197,7 @@ export default function AdminSettingsPage() {
     <div className="fixed inset-0 z-50 overflow-hidden flex bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-50/50 via-[#f4f5f8] to-[#edf0f5] select-none text-slate-800">
       
       {/* 1. LEFT SUB-NAV */}
-      <div className="bg-white/60 backdrop-blur-xl border-r border-slate-200/50 shrink-0 h-full">
+      <div className="bg-white border-r border-slate-200/50 shrink-0 h-full">
         <SettingsSubNav
           registry={registry}
           activeTabId={activeTabId}
@@ -209,12 +209,12 @@ export default function AdminSettingsPage() {
       <div className="flex-1 overflow-y-auto h-full px-6 sm:px-12 pt-10 pb-40 flex justify-center [scrollbar-width:thin]">
         <div className="w-full max-w-[760px] pb-16">
           {typeof ActiveComponent === 'function' ? (
-            <div className="[&_.bg-white]:bg-white/80 [&_.bg-white]:backdrop-blur-md [&_.bg-white]:border-white/70 [&_.bg-white]:shadow-[0_4px_20px_-2px_rgba(0,0,0,0.03)]">
+            <div className="">
               <ActiveComponent />
             </div>
           ) : (
-            <div className="bg-white/80 backdrop-blur-md rounded-2xl p-6 border border-rose-200">
-              <p className="text-xs text-rose-700 font-bold">
+            <div className="aq-surface rounded-card p-6 border border-rose-200">
+              <p className="text-[0.8125rem] text-rose-700 font-semibold">
                 Tab failed to load: {activeTabId}
               </p>
             </div>
@@ -227,13 +227,13 @@ export default function AdminSettingsPage() {
         <button
           type="button"
           onClick={handleExit}
-          className="group relative h-9 w-9 rounded-full bg-white/70 hover:bg-white backdrop-blur-md border border-slate-200/70 shadow-xs flex items-center justify-center text-slate-500 hover:text-slate-900 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          className="group relative h-9 w-9 rounded-full bg-white hover:bg-white border border-slate-200/70 shadow-xs flex items-center justify-center text-slate-600 hover:text-slate-900 hover:scale-105 active:scale-95 transition-all cursor-pointer"
           title="Return to Dashboard (Esc)"
         >
           <X className="h-4 w-4 stroke-[2]" />
         </button>
 
-        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold tracking-wider uppercase bg-white/80 backdrop-blur-md border border-slate-200/80 text-slate-400 shadow-2xs pointer-events-none">
+        <span className="px-1.5 py-0.5 rounded text-[0.8125rem] font-mono font-semibold bg-white border border-slate-200/80 text-slate-600 shadow-2xs pointer-events-none">
           ESC
         </span>
       </div>

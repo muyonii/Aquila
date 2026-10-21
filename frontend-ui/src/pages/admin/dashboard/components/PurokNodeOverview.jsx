@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Network, ChevronRight } from 'lucide-react';
+import { Network } from 'lucide-react';
 import { useTelemetryStore } from '../../../../stores/useTelemetryStore';
 
 export default function PurokNodeOverview({ nodes = [] }) {
@@ -38,39 +38,31 @@ export default function PurokNodeOverview({ nodes = [] }) {
   };
 
   return (
-    <div className="border border-slate-200 rounded-md bg-white p-5 space-y-4">
-      <div className="flex items-baseline justify-between border-b border-slate-200 pb-3">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900">
-            Purok 2 node overview
-          </h2>
-          <p className="text-sm text-slate-600 mt-0.5">
-            Monitored neighborhood tap nodes and sensor health.
-          </p>
-        </div>
-
-        <Link
-          to="/network-map"
-          className="text-sm font-semibold text-[#0c4a6e] hover:underline"
-        >
+    <section className="aq-card">
+      <div className="aq-card-head">
+        <h2 className="aq-card-title">
+          <span className="aq-icon"><Network className="w-[18px] h-[18px] stroke-[1.75]" /></span>
+          Purok 2 node overview
+        </h2>
+        <Link to="/network-map" className="aq-chip focus-visible:ring-2 focus-visible:ring-[#0c4a6e]">
           Open map
         </Link>
       </div>
 
-      <div className="divide-y divide-slate-200">
+      <div className="aq-tile !p-0 divide-y divide-line overflow-hidden">
         {nodes.slice(0, 6).map((n) => {
           const status = getNodeStatus(n);
           return (
             <Link
               to="/network-map"
               key={n.node_id}
-              className="py-2.5 flex items-center justify-between text-left hover:bg-slate-50 transition-colors px-1"
+              className="px-4 py-3 flex items-center justify-between text-left hover:bg-[#f4f8fb] transition-colors"
             >
               <div className="min-w-0 pr-3">
                 <span className="font-semibold text-sm text-slate-900 block truncate">
                   {n.household_label || n.node_id}
                 </span>
-                <span className="text-xs font-mono text-slate-600">{n.node_id}</span>
+                <span className="text-[0.8125rem] font-mono text-slate-600">{n.node_id}</span>
               </div>
               <span className="text-sm text-slate-700 flex items-center gap-1.5 shrink-0">
                 <span className={status.dotColor} aria-hidden="true">●</span>
@@ -79,7 +71,10 @@ export default function PurokNodeOverview({ nodes = [] }) {
             </Link>
           );
         })}
+        {nodes.length === 0 && (
+          <div className="px-4 py-6 text-sm text-slate-600 text-center">No nodes registered yet.</div>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

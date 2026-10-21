@@ -19,13 +19,12 @@ export default function AdminActionHub() {
   ];
 
   return (
-    <div className="border border-slate-200 rounded-md bg-white p-5 space-y-4">
-      <div className="border-b border-slate-200 pb-3">
-        <h2 className="text-base font-semibold text-slate-900">Administrative actions</h2>
-        <p className="text-sm text-slate-600 mt-0.5">Municipal utility shortcuts and records export.</p>
+    <section className="aq-card">
+      <div className="aq-card-head">
+        <h2 className="aq-card-title">Administrative actions</h2>
       </div>
 
-      <div className="divide-y divide-slate-200">
+      <div className="space-y-2">
         {actions.map((act) => {
           const Icon = act.icon;
           return (
@@ -33,17 +32,17 @@ export default function AdminActionHub() {
               key={act.label}
               type="button"
               onClick={act.onClick}
-              className="w-full py-3 flex items-center justify-between text-left text-sm text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
+              className="aq-tile w-full !py-3 flex items-center justify-between text-left text-sm text-slate-800 hover:bg-[#f4f8fb] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0c4a6e]"
             >
-              <div className="flex items-center gap-2.5">
-                <Icon className="h-4 w-4 text-slate-500 stroke-[1.75]" />
+              <span className="flex items-center gap-3">
+                <Icon className="h-[18px] w-[18px] text-slate-700 stroke-[1.75]" />
                 <span className="font-medium">{act.label}</span>
-              </div>
-              <span className="text-slate-400 text-sm">→</span>
+              </span>
+              <span className="text-slate-600" aria-hidden="true">›</span>
             </button>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
